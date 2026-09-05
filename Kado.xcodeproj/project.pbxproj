@@ -1,0 +1,826 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BE0A541C2F942EA000E09C34 /* KadoCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE0A541B2F942EA000E09C34 /* KadoCore */; };
+		BE0A541E2F942EC300E09C34 /* KadoCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE0A541D2F942EC300E09C34 /* KadoCore */; };
+		BE58C7602F940AAF0020146E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BE58C75F2F940AAF0020146E /* WidgetKit.framework */; };
+		BE58C7622F940AAF0020146E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BE58C7612F940AAF0020146E /* SwiftUI.framework */; };
+		BE58C76F2F940AB10020146E /* KadoWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = BE58C75D2F940AAF0020146E /* KadoWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BE7563B02FF9D739001CB541 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BE7563AF2FF9D739001CB541 /* StoreKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BE4188882F91B4F2006126D6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BE4188722F91B4F0006126D6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE4188792F91B4F0006126D6;
+			remoteInfo = Kado;
+		};
+		BE58C76D2F940AB10020146E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BE4188722F91B4F0006126D6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE58C75C2F940AAF0020146E;
+			remoteInfo = KadoWidgetsExtension;
+		};
+		BEC0DE0130000001000000AB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BE4188722F91B4F0006126D6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE4188792F91B4F0006126D6;
+			remoteInfo = Kado;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BE58C7702F940AB10020146E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				BE58C76F2F940AB10020146E /* KadoWidgetsExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		BE41887A2F91B4F0006126D6 /* Kado.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kado.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE4188872F91B4F2006126D6 /* KadoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KadoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE58C75D2F940AAF0020146E /* KadoWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KadoWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE58C75F2F940AAF0020146E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		BE58C7612F940AAF0020146E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		BE58C7752F940AC60020146E /* KadoWidgetsExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KadoWidgetsExtension.entitlements; sourceTree = "<group>"; };
+		BE7563AF2FF9D739001CB541 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		BE7563B12FF9D7F7001CB541 /* Tips.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Tips.storekit; sourceTree = "<group>"; };
+		BEC0DE0130000001000000A2 /* KadoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KadoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		BE58C7732F940AB10020146E /* Exceptions for "KadoWidgets" folder in "KadoWidgetsExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = BE58C75C2F940AAF0020146E /* KadoWidgetsExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		BE0A51582F94102000E09C34 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		BE41887C2F91B4F0006126D6 /* Kado */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Kado;
+			sourceTree = "<group>";
+		};
+		BE41888A2F91B4F2006126D6 /* KadoTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KadoTests;
+			sourceTree = "<group>";
+		};
+		BE58C7632F940AAF0020146E /* KadoWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				BE58C7732F940AB10020146E /* Exceptions for "KadoWidgets" folder in "KadoWidgetsExtension" target */,
+			);
+			path = KadoWidgets;
+			sourceTree = "<group>";
+		};
+		BEC0DE0130000001000000A3 /* KadoUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = KadoUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BE4188772F91B4F0006126D6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE0A541C2F942EA000E09C34 /* KadoCore in Frameworks */,
+				BE7563B02FF9D739001CB541 /* StoreKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE4188842F91B4F2006126D6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE58C75A2F940AAF0020146E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE58C7622F940AAF0020146E /* SwiftUI.framework in Frameworks */,
+				BE0A541E2F942EC300E09C34 /* KadoCore in Frameworks */,
+				BE58C7602F940AAF0020146E /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BEC0DE0130000001000000A5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BE4188712F91B4F0006126D6 = {
+			isa = PBXGroup;
+			children = (
+				BE7563B12FF9D7F7001CB541 /* Tips.storekit */,
+				BE0A51582F94102000E09C34 /* Shared */,
+				BE58C7752F940AC60020146E /* KadoWidgetsExtension.entitlements */,
+				BE41887C2F91B4F0006126D6 /* Kado */,
+				BE41888A2F91B4F2006126D6 /* KadoTests */,
+				BEC0DE0130000001000000A3 /* KadoUITests */,
+				BE58C7632F940AAF0020146E /* KadoWidgets */,
+				BE58C75E2F940AAF0020146E /* Frameworks */,
+				BE41887B2F91B4F0006126D6 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BE41887B2F91B4F0006126D6 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BE41887A2F91B4F0006126D6 /* Kado.app */,
+				BE4188872F91B4F2006126D6 /* KadoTests.xctest */,
+				BEC0DE0130000001000000A2 /* KadoUITests.xctest */,
+				BE58C75D2F940AAF0020146E /* KadoWidgetsExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BE58C75E2F940AAF0020146E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				BE7563AF2FF9D739001CB541 /* StoreKit.framework */,
+				BE58C75F2F940AAF0020146E /* WidgetKit.framework */,
+				BE58C7612F940AAF0020146E /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BE4188792F91B4F0006126D6 /* Kado */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE41889B2F91B4F2006126D6 /* Build configuration list for PBXNativeTarget "Kado" */;
+			buildPhases = (
+				BE4188762F91B4F0006126D6 /* Sources */,
+				BE4188772F91B4F0006126D6 /* Frameworks */,
+				BE4188782F91B4F0006126D6 /* Resources */,
+				BE58C7702F940AB10020146E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BE58C76E2F940AB10020146E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BE0A51582F94102000E09C34 /* Shared */,
+				BE41887C2F91B4F0006126D6 /* Kado */,
+			);
+			name = Kado;
+			packageProductDependencies = (
+				BE0A541B2F942EA000E09C34 /* KadoCore */,
+			);
+			productName = Kado;
+			productReference = BE41887A2F91B4F0006126D6 /* Kado.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BE4188862F91B4F2006126D6 /* KadoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE41889E2F91B4F2006126D6 /* Build configuration list for PBXNativeTarget "KadoTests" */;
+			buildPhases = (
+				BE4188832F91B4F2006126D6 /* Sources */,
+				BE4188842F91B4F2006126D6 /* Frameworks */,
+				BE4188852F91B4F2006126D6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BE4188892F91B4F2006126D6 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BE41888A2F91B4F2006126D6 /* KadoTests */,
+			);
+			name = KadoTests;
+			packageProductDependencies = (
+			);
+			productName = KadoTests;
+			productReference = BE4188872F91B4F2006126D6 /* KadoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		BE58C75C2F940AAF0020146E /* KadoWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE58C7742F940AB10020146E /* Build configuration list for PBXNativeTarget "KadoWidgetsExtension" */;
+			buildPhases = (
+				BE58C7592F940AAF0020146E /* Sources */,
+				BE58C75A2F940AAF0020146E /* Frameworks */,
+				BE58C75B2F940AAF0020146E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BE0A51582F94102000E09C34 /* Shared */,
+				BE58C7632F940AAF0020146E /* KadoWidgets */,
+			);
+			name = KadoWidgetsExtension;
+			packageProductDependencies = (
+				BE0A541D2F942EC300E09C34 /* KadoCore */,
+			);
+			productName = KadoWidgetsExtension;
+			productReference = BE58C75D2F940AAF0020146E /* KadoWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		BEC0DE0130000001000000A1 /* KadoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BEC0DE0130000001000000A7 /* Build configuration list for PBXNativeTarget "KadoUITests" */;
+			buildPhases = (
+				BEC0DE0130000001000000A4 /* Sources */,
+				BEC0DE0130000001000000A5 /* Frameworks */,
+				BEC0DE0130000001000000A6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BEC0DE0130000001000000AA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BE0A51582F94102000E09C34 /* Shared */,
+				BEC0DE0130000001000000A3 /* KadoUITests */,
+			);
+			name = KadoUITests;
+			packageProductDependencies = (
+			);
+			productName = KadoUITests;
+			productReference = BEC0DE0130000001000000A2 /* KadoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BE4188722F91B4F0006126D6 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2640;
+				LastUpgradeCheck = 2640;
+				TargetAttributes = {
+					BE4188792F91B4F0006126D6 = {
+						CreatedOnToolsVersion = 26.4;
+					};
+					BE4188862F91B4F2006126D6 = {
+						CreatedOnToolsVersion = 26.4;
+						TestTargetID = BE4188792F91B4F0006126D6;
+					};
+					BE58C75C2F940AAF0020146E = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
+					BEC0DE0130000001000000A1 = {
+						TestTargetID = BE4188792F91B4F0006126D6;
+					};
+				};
+			};
+			buildConfigurationList = BE4188752F91B4F0006126D6 /* Build configuration list for PBXProject "Kado" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BE4188712F91B4F0006126D6;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				BE0A541A2F942EA000E09C34 /* XCLocalSwiftPackageReference "Packages/KadoCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = BE41887B2F91B4F0006126D6 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BE4188792F91B4F0006126D6 /* Kado */,
+				BE4188862F91B4F2006126D6 /* KadoTests */,
+				BEC0DE0130000001000000A1 /* KadoUITests */,
+				BE58C75C2F940AAF0020146E /* KadoWidgetsExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BE4188782F91B4F0006126D6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE4188852F91B4F2006126D6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE58C75B2F940AAF0020146E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BEC0DE0130000001000000A6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BE4188762F91B4F0006126D6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE4188832F91B4F2006126D6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE58C7592F940AAF0020146E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BEC0DE0130000001000000A4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BE4188892F91B4F2006126D6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE4188792F91B4F0006126D6 /* Kado */;
+			targetProxy = BE4188882F91B4F2006126D6 /* PBXContainerItemProxy */;
+		};
+		BE58C76E2F940AB10020146E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE58C75C2F940AAF0020146E /* KadoWidgetsExtension */;
+			targetProxy = BE58C76D2F940AB10020146E /* PBXContainerItemProxy */;
+		};
+		BEC0DE0130000001000000AA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE4188792F91B4F0006126D6 /* Kado */;
+			targetProxy = BEC0DE0130000001000000AB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		BE4188992F91B4F2006126D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		BE41889A2F91B4F2006126D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BE41889C2F91B4F2006126D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Kado/Kado.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Kadō";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BE41889D2F91B4F2006126D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Kado/Kado.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Kadō";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UIBackgroundModes = "remote-notification";
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BE41889F2F91B4F2006126D6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado.KadoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kado.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kado";
+			};
+			name = Debug;
+		};
+		BE4188A02F91B4F2006126D6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado.KadoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kado.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Kado";
+			};
+			name = Release;
+		};
+		BE58C7712F940AB10020146E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = KadoWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KadoWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = KadoWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado.KadoWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BE58C7722F940AB10020146E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = KadoWidgetsExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = KadoWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = KadoWidgets;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado.KadoWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BEC0DE0130000001000000A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado.KadoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Kado;
+			};
+			name = Debug;
+		};
+		BEC0DE0130000001000000A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 16;
+				DEVELOPMENT_TEAM = VKY5EKKU47;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.8;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.scastiel.kado.KadoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Kado;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BE4188752F91B4F0006126D6 /* Build configuration list for PBXProject "Kado" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE4188992F91B4F2006126D6 /* Debug */,
+				BE41889A2F91B4F2006126D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BE41889B2F91B4F2006126D6 /* Build configuration list for PBXNativeTarget "Kado" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE41889C2F91B4F2006126D6 /* Debug */,
+				BE41889D2F91B4F2006126D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BE41889E2F91B4F2006126D6 /* Build configuration list for PBXNativeTarget "KadoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE41889F2F91B4F2006126D6 /* Debug */,
+				BE4188A02F91B4F2006126D6 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BE58C7742F940AB10020146E /* Build configuration list for PBXNativeTarget "KadoWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE58C7712F940AB10020146E /* Debug */,
+				BE58C7722F940AB10020146E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BEC0DE0130000001000000A7 /* Build configuration list for PBXNativeTarget "KadoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BEC0DE0130000001000000A8 /* Debug */,
+				BEC0DE0130000001000000A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		BE0A541A2F942EA000E09C34 /* XCLocalSwiftPackageReference "Packages/KadoCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/KadoCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BE0A541B2F942EA000E09C34 /* KadoCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = KadoCore;
+		};
+		BE0A541D2F942EC300E09C34 /* KadoCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BE0A541A2F942EA000E09C34 /* XCLocalSwiftPackageReference "Packages/KadoCore" */;
+			productName = KadoCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = BE4188722F91B4F0006126D6 /* Project object */;
+}
