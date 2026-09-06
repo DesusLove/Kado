@@ -1,0 +1,234 @@
+import Foundation
+import SwiftData
+
+/// Builds a `WidgetSnapshot` from SwiftData state. Called on the
+/// app side (main process) after every mutation so the widget
+/// always reads fresh data.
+@MainActor
+public enum WidgetSnapshotBuilder {
+    /// Gather everything the widgets need from `context` and
+    /// serialize to a single `WidgetSnapshot` value.
+    ///
+    /// The three services default to implementations built on the
+    /// `calendar` passed in. They are resolved in the body rather
+    /// than as default arguments because a default argument cannot
+    /// reference another parameter — spelling them
+    /// `= DefaultFrequencyEvaluator()` silently pinned them to
+    /// `Calendar.current` while the rest of the build honoured the
+    /// caller's calendar, which makes any non-UTC machine disagree
+    /// with a UTC-pinned test.
+    public static func build(
+        from context: ModelContext,
+        asOf reference: Date = .now,
+        calendar: Calendar = .current,
+        matrixWindowDays: Int = 7,
+        scoreCalculator: (any HabitScoreCalculating)? = nil,
+        streakCalculator: (any StreakCalculating)? = nil,
+        frequencyEvaluator: (any FrequencyEvaluating)? = nil
+    ) -> WidgetSnapshot {
+        let frequencyEvaluator = frequencyEvaluator
+            ?? DefaultFrequencyEvaluator(calendar: calendar)
+        let scoreCalculator = scoreCalculator
+            ?? DefaultHabitScoreCalculator(
+                calendar: calendar,
+                frequencyEvaluator: frequencyEvaluator
+            )
+        let streakCalculator = streakCalculator
+            ?? DefaultStreakCalculator(calendar: calendar)
+
+        let descriptor = FetchDescriptor<HabitRecord>(
+            sortBy: [SortDescriptor(\.sortOrder)]
+        )
+        let records = (try? context.fetch(descriptor)) ?? []
+        let active = records.filter { $0.archivedAt == nil }
+
+        // Compute per-habit stats once. Reused across the three
+        // WidgetHabit construction sites (top-level, today rows,
+        // matrix rows) so consumers see consistent values.
+        struct HabitStats { let current: Int; let best: Int; let score: Double }
+        var statsByID: [UUID: HabitStats] = [:]
+        for record in active {
+            let snap = record.snapshot
+            let comps = (record.completions ?? []).compactMap(\.snapshot)
+            statsByID[snap.id] = HabitStats(
+                current: streakCalculator.current(for: snap, completions: comps, asOf: reference),
+                best: streakCalculator.best(for: snap, completions: comps, asOf: reference),
+                score: scoreCalculator.currentScore(for: snap, completions: comps, asOf: reference)
+            )
+        }
+
+        func makeWidgetHabit(from record: HabitRecord) -> WidgetHabit {
+            let stats = statsByID[record.id]
+            return WidgetHabit(
+                id: record.id,
+                name: record.name,
+                color: record.color,
+                icon: record.icon,
+                typeKind: mapTypeKind(record.type),
+                target: mapTarget(record.type),
+                currentStreak: stats?.current ?? 0,
+                bestStreak: stats?.best ?? 0,
+                currentScore: stats?.score ?? 0
+            )
+        }
+
+        func makeWidgetHabit(from snap: Habit) -> WidgetHabit {
+            let stats = statsByID[snap.id]
+            return WidgetHabit(
+                id: snap.id,
+                name: snap.name,
+                color: snap.color,
+                icon: snap.icon,
+                typeKind: mapTypeKind(snap.type),
+                target: mapTarget(snap.type),
+                currentStreak: stats?.current ?? 0,
+                bestStreak: stats?.best ?? 0,
+                currentScore: stats?.score ?? 0
+            )
+        }
+
+        let widgetHabits = active.map(makeWidgetHabit(from:))
+
+        var todayRows: [WidgetTodayRow] = []
+        var completed = 0
+        for record in active {
+            let snap = record.snapshot
+            let comps = (record.completions ?? []).compactMap(\.snapshot)
+            // Without the "or logged today" arm a habit vanishes from
+            // the widget the moment it is completed past a weekly
+            // quota, taking its own tick out of `completedToday`.
+            // Shared with the Today tab so the two can't drift.
+            guard frequencyEvaluator.isDueOrLogged(
+                habit: snap,
+                on: reference,
+                completions: comps,
+                calendar: calendar
+            ) else {
+                continue
+            }
+            let state = HabitRowState.resolve(
+                habit: snap,
+                completions: comps,
+                calendar: calendar,
+                asOf: reference
+            )
+            let widgetHabit = makeWidgetHabit(from: snap)
+            todayRows.append(
+                WidgetTodayRow(
+                    habit: widgetHabit,
+                    status: mapStatus(state.status),
+                    progress: state.progress,
+                    valueToday: state.valueToday,
+                    // Both off `widgetHabit`, which already carries
+                    // them from the same `statsByID` lookup. Reading
+                    // the dictionary again here would leave two paths
+                    // to one number, and a later change to how either
+                    // is derived would have to find both.
+                    streak: widgetHabit.currentStreak,
+                    scorePercent: widgetHabit.scorePercent
+                )
+            )
+            // Not `status == .complete`: for a negative habit that is a
+            // slip, and the day's tally must not count giving in as
+            // getting it done.
+            if state.isDone(for: snap) { completed += 1 }
+        }
+
+        // Matrix window (last N days ending today).
+        let today = calendar.startOfDay(for: reference)
+        let matrixDays: [Date] = (0..<matrixWindowDays).reversed().compactMap { offset in
+            calendar.date(byAdding: .day, value: -offset, to: today)
+        }
+        let habits = active.map(\.snapshot)
+        let allCompletions = active.flatMap { ($0.completions ?? []).compactMap(\.snapshot) }
+        let matrix = OverviewMatrix.compute(
+            habits: habits,
+            completions: allCompletions,
+            days: matrixDays,
+            today: reference,
+            calendar: calendar,
+            frequencyEvaluator: frequencyEvaluator
+        )
+        let widgetMatrix = matrix.map { row in
+            WidgetMatrixRow(
+                habit: makeWidgetHabit(from: row.habit),
+                cells: row.days.map(mapDayCell)
+            )
+        }
+
+        return WidgetSnapshot(
+            // The true build time, not `reference` — under a non-zero
+            // day-start hour `reference` is the logical day's midnight,
+            // which would make this field quietly untrue.
+            generatedAt: .now,
+            habits: widgetHabits,
+            today: todayRows,
+            totalDueToday: todayRows.count,
+            completedToday: completed,
+            matrix: widgetMatrix,
+            matrixDays: matrixDays
+        )
+    }
+
+    /// Convenience: build from the production container and write
+    /// to the App Group JSON in one shot. Safe to call from any
+    /// mutation site.
+    ///
+    /// Also where the day-complete celebration is fed. This is the one
+    /// call every mutation path already makes — the views through
+    /// `WidgetReloader`, the intents directly, the app at launch and
+    /// at the day edge — so reporting the day's progress here means no
+    /// surface can complete the day without the confetti hearing about
+    /// it, and none has to remember a second call.
+    public static func rebuildAndWrite(using context: ModelContext) {
+        // Widgets render a pre-computed snapshot and never ask what day
+        // it is — nor which day a week opens on — so both preferences
+        // have to be resolved here, once. The week start reaches the
+        // streak calculator, whose `.daysPerWeek` count is bucketed
+        // into whole calendar weeks.
+        let day = DayStartDefaults.boundary().startOfDay(for: .now)
+        let snapshot = build(
+            from: context,
+            asOf: day,
+            calendar: WeekStartDefaults.calendar()
+        )
+        WidgetSnapshotStore.write(snapshot)
+        DayCompletionCelebration.shared.observe(snapshot.dayProgress, on: day)
+    }
+
+    // MARK: - Mapping helpers
+
+    private static func mapTypeKind(_ type: HabitType) -> WidgetHabitTypeKind {
+        switch type {
+        case .binary: .binary
+        case .negative: .negative
+        case .counter: .counter
+        case .timer: .timer
+        }
+    }
+
+    private static func mapTarget(_ type: HabitType) -> Double? {
+        switch type {
+        case .binary, .negative: nil
+        case .counter(let target): target
+        case .timer(let targetSeconds): targetSeconds
+        }
+    }
+
+    private static func mapStatus(_ status: HabitRowState.Status) -> WidgetStatus {
+        switch status {
+        case .none: .none
+        case .partial: .partial
+        case .complete: .complete
+        }
+    }
+
+    private static func mapDayCell(_ cell: DayCell) -> WidgetDayCell {
+        switch cell {
+        case .future: .future
+        case .notDue: .notDue
+        case .scored(let v): .scored(v)
+        case .offSchedule(let v): .offSchedule(v)
+        }
+    }
+}
