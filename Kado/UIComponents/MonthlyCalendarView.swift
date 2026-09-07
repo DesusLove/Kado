@@ -1,0 +1,409 @@
+import SwiftUI
+import KadoCore
+
+/// Current-month calendar grid showing completion state per day.
+/// Renders as a 7-column `LazyVGrid` with weekday headers and
+/// leading blanks that align the first day of the month to its
+/// weekday column.
+///
+/// Which day opens the week comes from the injected calendar's
+/// `firstWeekday`, which `KadoApp` derives from Settings → Week.
+struct MonthlyCalendarView<PopoverContent: View>: View {
+    let habit: Habit
+    let completions: [Completion]
+    @Binding var month: Date
+    @Binding var selectedDay: Date?
+    var navigable: Bool = false
+    @ViewBuilder var popoverContent: (Date) -> PopoverContent
+    @Environment(\.calendar) private var calendar
+    @Environment(\.today) private var today
+    @Environment(\.frequencyEvaluator) private var frequencyEvaluator
+
+    @State private var slideDirection: SlideDirection = .forward
+
+    private enum SlideDirection {
+        case forward, backward
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            monthHeader
+            weekdayHeader
+            LazyVGrid(columns: gridColumns, spacing: 8) {
+                ForEach(0..<leadingBlanks, id: \.self) { _ in
+                    Color.clear.frame(height: 32)
+                }
+                ForEach(daysInMonth, id: \.self) { day in
+                    cell(for: day)
+                        .frame(height: 32)
+                }
+            }
+            .id(monthStart)
+            .transition(.asymmetric(
+                insertion: .move(edge: slideDirection == .forward ? .trailing : .leading),
+                removal: .move(edge: slideDirection == .forward ? .leading : .trailing)
+            ))
+        }
+    }
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+    }
+
+    @ViewBuilder
+    private var monthHeader: some View {
+        if navigable {
+            navigableMonthHeader
+        } else {
+            Text(monthTitle)
+                .font(.headline)
+                .accessibilityAddTraits(.isHeader)
+        }
+    }
+
+    private var navigableMonthHeader: some View {
+        HStack {
+            Button {
+                navigateMonth(by: -1)
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.body.weight(.semibold))
+                    .contentShape(Rectangle())
+            }
+            .accessibilityIdentifier(AccessibilityID.HabitDetail.previousMonthButton)
+            .accessibilityLabel(Text("Previous month"))
+
+            Spacer()
+
+            Button {
+                selectedDay = nil
+                slideDirection = .forward
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    month = today
+                }
+            } label: {
+                Text(monthTitle)
+                    .font(.headline)
+            }
+            .disabled(!canGoForward)
+            .accessibilityAddTraits(.isHeader)
+
+            Spacer()
+
+            Button {
+                navigateMonth(by: 1)
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.body.weight(.semibold))
+                    .contentShape(Rectangle())
+            }
+            .disabled(!canGoForward)
+            .accessibilityLabel(Text("Next month"))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.primary)
+    }
+
+    private func navigateMonth(by value: Int) {
+        guard let newMonth = calendar.date(byAdding: .month, value: value, to: month) else { return }
+        selectedDay = nil
+        slideDirection = value > 0 ? .forward : .backward
+        withAnimation(.easeInOut(duration: 0.25)) {
+            month = newMonth
+        }
+    }
+
+    private var canGoForward: Bool {
+        let currentMonth = calendar.dateInterval(of: .month, for: today)?.start
+        return monthStart != currentMonth
+    }
+
+    private var weekdayHeader: some View {
+        HStack(spacing: 8) {
+            ForEach(weekdayDisplayOrder, id: \.self) { weekday in
+                Text(weekday.localizedShort)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    private var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = calendar.locale ?? .current
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: monthStart)
+    }
+
+    private var monthStart: Date {
+        calendar.dateInterval(of: .month, for: month)?.start ?? month
+    }
+
+    private var daysInMonth: [Date] {
+        guard let range = calendar.range(of: .day, in: .month, for: monthStart) else { return [] }
+        return range.compactMap { dayOffset in
+            calendar.date(byAdding: .day, value: dayOffset - 1, to: monthStart)
+        }
+    }
+
+    /// Blank cells before the 1st, so it lands under its own weekday
+    /// header. Follows `calendar.firstWeekday` — the region's day by
+    /// default, the user's once they set "Week starts on" — rather
+    /// than the Monday this used to hard-code.
+    private var leadingBlanks: Int {
+        let weekday = calendar.component(.weekday, from: monthStart)
+        return Weekday(rawValue: weekday)?.column(inWeekStartingOn: calendar.firstWeekday) ?? 0
+    }
+
+    private var weekdayDisplayOrder: [Weekday] {
+        Weekday.week(startingOn: calendar.firstWeekday)
+    }
+
+    @ViewBuilder
+    private func cell(for day: Date) -> some View {
+        let state = state(for: day)
+        // Compared against the logical day, not `isDateInToday` —
+        // between midnight and the rollover hour the ring belongs on
+        // the day Today is still showing.
+        let isToday = calendar.isDate(day, inSameDayAs: today)
+        let dayNumber = calendar.component(.day, from: day)
+        let isInteractive = state != .future
+
+        let visual = ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(fill(for: state))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(
+                            isToday ? Color.accentColor : Color.clear,
+                            lineWidth: 2
+                        )
+                )
+            VStack(spacing: 1) {
+                Text("\(dayNumber)")
+                    .font(.caption.weight(state == .completed ? .bold : .regular))
+                    .foregroundStyle(foreground(for: state))
+                Circle()
+                    .fill(Color.secondary)
+                    .frame(width: 4, height: 4)
+                    .opacity(hasNote(on: day) ? 1 : 0)
+            }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement()
+        .accessibilityLabel(accessibilityLabel(for: day, state: state, isToday: isToday))
+
+        if isInteractive {
+            visual
+                .accessibilityHint(Text("Double-tap to edit this day."))
+                .onTapGesture { selectedDay = day }
+                .popover(isPresented: popoverBinding(for: day)) {
+                    popoverContent(day)
+                }
+        } else {
+            visual
+        }
+    }
+
+    private func popoverBinding(for day: Date) -> Binding<Bool> {
+        Binding(
+            get: {
+                guard let selectedDay else { return false }
+                return calendar.isDate(selectedDay, inSameDayAs: day)
+            },
+            set: { newValue in
+                if newValue {
+                    selectedDay = day
+                } else {
+                    selectedDay = nil
+                }
+            }
+        )
+    }
+
+    private enum CellState {
+        case future       // after today
+        case completed    // done on this day
+        case missed       // past / today, due, not done
+        case nonDue       // past / today, not due (schedule skip)
+    }
+
+    private func state(for day: Date) -> CellState {
+        // `today` is already the logical day's midnight.
+        if day > today {
+            return .future
+        }
+        let effectiveStartDay = calendar.startOfDay(
+            for: habit.effectiveStart(completions: completions, calendar: calendar)
+        )
+        if day < effectiveStartDay {
+            return .nonDue
+        }
+        let completedOnDay = completions.contains { c in
+            c.habitID == habit.id && c.value > 0 && calendar.isDate(c.date, inSameDayAs: day)
+        }
+        switch habit.type {
+        case .negative:
+            return completedOnDay ? .missed : .completed
+        case .binary, .counter, .timer:
+            if completedOnDay { return .completed }
+            return dayIsDue(day) ? .missed : .nonDue
+        }
+    }
+
+    /// Deliberately the shared evaluator rather than a local copy of
+    /// the frequency rules. The private re-implementation this
+    /// replaces treated `.daysPerWeek` as always due (so rest days
+    /// read as "missed") and ignored `archivedAt` — and having two
+    /// copies is what let this view and the Overview grid drift apart
+    /// in the first place (issue #57).
+    private func dayIsDue(_ day: Date) -> Bool {
+        frequencyEvaluator.isDue(habit: habit, on: day, completions: completions)
+    }
+
+    private func fill(for state: CellState) -> Color {
+        switch state {
+        case .future: Color.kadoHairline
+        case .completed: habit.color.color.opacity(0.9)
+        case .missed: Color.kadoPaper200
+        case .nonDue: Color.kadoHairline.opacity(0.4)
+        }
+    }
+
+    private func foreground(for state: CellState) -> Color {
+        switch state {
+        case .future: .secondary
+        case .completed: .white
+        case .missed: .primary
+        case .nonDue: .secondary
+        }
+    }
+
+    private func hasNote(on day: Date) -> Bool {
+        completions.contains { c in
+            c.habitID == habit.id
+                && calendar.isDate(c.date, inSameDayAs: day)
+                && c.note.map { !$0.isEmpty } ?? false
+        }
+    }
+
+    private func accessibilityLabel(for day: Date, state: CellState, isToday: Bool) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = calendar.locale ?? .current
+        formatter.dateStyle = .full
+        let dateString = formatter.string(from: day)
+        let stateString: String
+        switch state {
+        case .completed: stateString = String(localized: "completed")
+        case .missed: stateString = String(localized: "missed")
+        case .nonDue: stateString = String(localized: "not scheduled")
+        case .future: stateString = String(localized: "upcoming")
+        }
+        let noteString = hasNote(on: day) ? String(localized: ", has note") : ""
+        if isToday {
+            return "\(dateString), today, \(stateString)\(noteString)"
+        }
+        return "\(dateString), \(stateString)\(noteString)"
+    }
+}
+
+extension MonthlyCalendarView where PopoverContent == EmptyView {
+    /// Convenience init for read-only callers (previews, any future
+    /// surface that shows the grid without edit affordances). Cells
+    /// remain tappable but selection goes to a discarded binding, so
+    /// no popover is attached. No month navigation is shown.
+    init(
+        habit: Habit,
+        completions: [Completion],
+        month: Date = .now
+    ) {
+        self.init(
+            habit: habit,
+            completions: completions,
+            month: .constant(month),
+            selectedDay: .constant(nil),
+            popoverContent: { _ in EmptyView() }
+        )
+    }
+}
+
+#Preview("Daily with partial history") {
+    let habit = Habit(
+        name: "Meditate",
+        frequency: .daily,
+        type: .binary,
+        createdAt: Calendar.current.date(byAdding: .day, value: -20, to: .now)!
+    )
+    let completions = [1, 2, 3, 5, 7, 8, 10, 12, 13, 14, 18].map { offset in
+        Completion(
+            habitID: habit.id,
+            date: Calendar.current.date(byAdding: .day, value: -offset, to: .now)!
+        )
+    }
+    return MonthlyCalendarView(habit: habit, completions: completions)
+        .padding()
+}
+
+#Preview("Specific days (Mon/Wed/Fri)") {
+    let habit = Habit(
+        name: "Gym",
+        frequency: .specificDays([.monday, .wednesday, .friday]),
+        type: .binary,
+        createdAt: Calendar.current.date(byAdding: .day, value: -40, to: .now)!
+    )
+    return MonthlyCalendarView(habit: habit, completions: [])
+        .padding()
+}
+
+/// Sunday-first, which is what most of the world outside Europe sees
+/// and what no other preview here shows: the previewing Mac's own
+/// calendar decides every one of them.
+#Preview("Week starts on Sunday") {
+    let habit = Habit(
+        name: "Meditate",
+        frequency: .daily,
+        type: .binary,
+        createdAt: Calendar.current.date(byAdding: .day, value: -20, to: .now)!
+    )
+    let completions = [1, 2, 3, 5, 7, 8, 10, 12, 13, 14, 18].map { offset in
+        Completion(
+            habitID: habit.id,
+            date: Calendar.current.date(byAdding: .day, value: -offset, to: .now)!
+        )
+    }
+    return MonthlyCalendarView(habit: habit, completions: completions)
+        .padding()
+        .environment(\.calendar, .sundayFirst)
+}
+
+#Preview("Empty history") {
+    let habit = Habit(
+        name: "Read",
+        frequency: .daily,
+        type: .binary,
+        createdAt: .now
+    )
+    return MonthlyCalendarView(habit: habit, completions: [])
+        .padding()
+}
+
+#Preview("Dark") {
+    let habit = Habit(
+        name: "Meditate",
+        frequency: .daily,
+        type: .binary,
+        createdAt: Calendar.current.date(byAdding: .day, value: -20, to: .now)!
+    )
+    let completions = [1, 2, 3, 5, 7, 8, 10, 12, 13, 14, 18].map { offset in
+        Completion(
+            habitID: habit.id,
+            date: Calendar.current.date(byAdding: .day, value: -offset, to: .now)!
+        )
+    }
+    return MonthlyCalendarView(habit: habit, completions: completions)
+        .padding()
+        .preferredColorScheme(.dark)
+}
