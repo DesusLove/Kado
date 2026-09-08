@@ -1,0 +1,243 @@
+import SwiftData
+import SwiftUI
+import KadoCore
+
+/// Modal sheet for creating a new habit. Scoped to the four core
+/// fields (name, frequency, type) — icon, color, reminders, and
+/// createdAt editing land with later PRs.
+struct NewHabitFormView: View {
+    @Bindable var model: NewHabitFormModel
+
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.notificationScheduler) private var notificationScheduler
+    @Environment(\.dayBoundary) private var dayBoundary
+    @Environment(\.calendar) private var calendar
+
+    @FocusState private var nameFocused: Bool
+    @State private var saveTick: Int = 0
+    @State private var showingPermissionDeniedAlert = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                nameSection
+                appearanceSection
+                frequencySection
+                typeSection
+                reminderSection
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.kadoBackground.ignoresSafeArea())
+            .navigationTitle(model.isEditing
+                ? String(localized: "Edit Habit")
+                : String(localized: "New Habit"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                        .accessibilityIdentifier(AccessibilityID.NewHabit.cancelButton)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .disabled(!model.isValid)
+                        .accessibilityIdentifier(AccessibilityID.NewHabit.saveButton)
+                }
+            }
+            .sensoryFeedback(.success, trigger: saveTick)
+            // Focused on appear so a real user starts typing straight
+            // away — except under the screenshot run, where the
+            // keyboard would cover the half of the form the shot is
+            // about. See `UITestSupport.suppressesNameAutoFocus`.
+            .onAppear { nameFocused = !UITestSupport.suppressesNameAutoFocus }
+            .alert(
+                String(localized: "Notifications are disabled"),
+                isPresented: $showingPermissionDeniedAlert
+            ) {
+                Button(String(localized: "Open Settings")) {
+                    openNotificationSettings()
+                }
+                Button(String(localized: "Not now"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "Enable notifications in Settings to receive this reminder."))
+            }
+        }
+    }
+
+    private var nameSection: some View {
+        Section {
+            TextField(String(localized: "Habit name"), text: $model.name)
+                .focused($nameFocused)
+                .submitLabel(.done)
+                .accessibilityIdentifier(AccessibilityID.NewHabit.nameField)
+        }
+        .listRowBackground(Color.kadoBackgroundSecondary)
+    }
+
+    private var appearanceSection: some View {
+        Section(String(localized: "Appearance")) {
+            HabitColorPicker(selection: $model.color)
+            HabitIconPicker(selection: $model.icon, tint: model.color.color)
+        }
+        .listRowBackground(Color.kadoBackgroundSecondary)
+    }
+
+    private var frequencySection: some View {
+        Section(String(localized: "Frequency")) {
+            Picker(String(localized: "Repeats"), selection: $model.frequencyKind) {
+                Text("Every day").tag(NewHabitFormModel.FrequencyKind.daily)
+                Text("A few times a week").tag(NewHabitFormModel.FrequencyKind.daysPerWeek)
+                Text("Specific days").tag(NewHabitFormModel.FrequencyKind.specificDays)
+                Text("Every N days").tag(NewHabitFormModel.FrequencyKind.everyNDays)
+            }
+
+            switch model.frequencyKind {
+            case .daily:
+                EmptyView()
+            case .daysPerWeek:
+                Stepper(
+                    String(localized: "\(model.daysPerWeek) days per week"),
+                    value: $model.daysPerWeek,
+                    in: 1...7
+                )
+            case .specificDays:
+                WeekdayPicker(selection: $model.specificDays)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+            case .everyNDays:
+                Stepper(
+                    String(localized: "Every \(model.everyNDays) days"),
+                    value: $model.everyNDays,
+                    in: 1...60
+                )
+            }
+        }
+        .listRowBackground(Color.kadoBackgroundSecondary)
+    }
+
+    private var typeSection: some View {
+        Section(String(localized: "Type")) {
+            Picker(String(localized: "How is it measured?"), selection: $model.typeKind) {
+                Text("Yes / no").tag(NewHabitFormModel.HabitTypeKind.binary)
+                Text("Counter").tag(NewHabitFormModel.HabitTypeKind.counter)
+                Text("Timer").tag(NewHabitFormModel.HabitTypeKind.timer)
+                Text("Avoid").tag(NewHabitFormModel.HabitTypeKind.negative)
+            }
+
+            switch model.typeKind {
+            case .binary, .negative:
+                EmptyView()
+            case .counter:
+                Stepper(
+                    String(localized: "Target: \(Int(model.counterTarget))"),
+                    value: $model.counterTarget,
+                    in: 1...999,
+                    step: 1
+                )
+            case .timer:
+                Stepper(
+                    String(localized: "Target: \(model.timerTargetMinutes) min"),
+                    value: $model.timerTargetMinutes,
+                    in: 1...240
+                )
+            }
+        }
+        .listRowBackground(Color.kadoBackgroundSecondary)
+    }
+
+    private var reminderSection: some View {
+        Section {
+            Toggle(String(localized: "Remind me"), isOn: $model.remindersEnabled)
+            if model.remindersEnabled {
+                DatePicker(
+                    String(localized: "Time"),
+                    selection: $model.reminderTime,
+                    displayedComponents: .hourAndMinute
+                )
+            }
+        } header: {
+            Text("Reminder")
+        } footer: {
+            if model.remindersEnabled {
+                Text(String(localized: "Fires on \(frequencyFooter)"))
+            }
+        }
+        .listRowBackground(Color.kadoBackgroundSecondary)
+    }
+
+    private var frequencyFooter: String {
+        switch model.frequency {
+        case .daily:
+            return String(localized: "every day")
+        case .daysPerWeek(let n):
+            return String(localized: "\(n) days each week")
+        case .specificDays(let days):
+            let ordered = Weekday.week(startingOn: calendar.firstWeekday)
+            return ordered.filter(days.contains).map(\.localizedMedium).joined(separator: " · ")
+        case .everyNDays(let n):
+            return String(localized: "every \(n) days")
+        }
+    }
+
+    private func save() {
+        guard model.isValid else { return }
+        Task {
+            if model.remindersEnabled {
+                let status = await notificationScheduler.requestAuthorizationIfNeeded()
+                if status == .denied {
+                    showingPermissionDeniedAlert = true
+                    return
+                }
+            }
+            model.save(in: modelContext, createdAt: dayBoundary.loggingInstant(for: .now))
+            saveTick += 1
+            dismiss()
+        }
+    }
+
+    private func openNotificationSettings() {
+        guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+}
+
+#Preview("Default") {
+    NewHabitFormView(model: NewHabitFormModel())
+        .modelContainer(PreviewContainer.emptyContainer())
+}
+
+#Preview("Pre-filled counter") {
+    let model = NewHabitFormModel()
+    model.name = "Drink water"
+    model.typeKind = .counter
+    model.counterTarget = 8
+    return NewHabitFormView(model: model)
+        .modelContainer(PreviewContainer.emptyContainer())
+}
+
+#Preview("Pre-filled specific days") {
+    let model = NewHabitFormModel()
+    model.name = "Gym"
+    model.frequencyKind = .specificDays
+    model.specificDays = [.monday, .wednesday, .friday]
+    return NewHabitFormView(model: model)
+        .modelContainer(PreviewContainer.emptyContainer())
+}
+
+#Preview("Reminder on") {
+    let model = NewHabitFormModel()
+    model.name = "Meditate"
+    model.remindersEnabled = true
+    model.reminderTime = Calendar.current.date(bySettingHour: 7, minute: 15, second: 0, of: .now)!
+    return NewHabitFormView(model: model)
+        .modelContainer(PreviewContainer.emptyContainer())
+}
+
+#Preview("Dark") {
+    let model = NewHabitFormModel()
+    model.name = "Gym"
+    model.frequencyKind = .specificDays
+    model.specificDays = [.monday, .wednesday, .friday]
+    return NewHabitFormView(model: model)
+        .modelContainer(PreviewContainer.emptyContainer())
+        .preferredColorScheme(.dark)
+}
