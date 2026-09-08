@@ -1,0 +1,517 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld" : {
+      "comment" : "Bare number, no unit (Int). Circular lock widget's percentage; large widget's streak count.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld / %lld done" : {
+      "comment" : "Widget progress summary. Arg 1 is completed count, arg 2 is total count.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld done"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld / %2$lld faites"
+          }
+        }
+      }
+    },
+    "%lld of %lld done today" : {
+      "comment" : "Inline lock widget summary. Arg 1 completed, arg 2 total.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld done today"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld sur %2$lld faites aujourd'hui"
+          }
+        }
+      }
+    },
+    "%lld of %lld habits done today" : {
+      "comment" : "Medium widget VoiceOver summary. Arg 1 completed, arg 2 total.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld of %2$lld habits done today"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld habitudes sur %2$lld faites aujourd'hui"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+      "comment" : "Score percentage badge. Rectangular lock widget, and the large home widget's per-habit metrics chip.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %%"
+          }
+        }
+      }
+    },
+    "%lldd" : {
+      "comment" : "Compact streak badge on the rectangular lock-screen widget. Arg: streak length in days. Translators: localize the 'd' suffix (e.g. 'j' for French).",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldd"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldj"
+          }
+        }
+      }
+    },
+    "All done" : {
+      "comment" : "Small home widget empty state when every due habit is complete.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All done"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout est fait"
+          }
+        }
+      }
+    },
+    "done" : {
+      "comment" : "Widget accessibility: binary habit completed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "done"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "fait"
+          }
+        }
+      }
+    },
+    "Habit" : {
+      "comment" : "Rectangular lock widget display name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habitude"
+          }
+        }
+      }
+    },
+    "Habit Progress" : {
+      "comment" : "Circular lock widget display name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habit Progress"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression de l'habitude"
+          }
+        }
+      }
+    },
+    "Habits due today with a completion summary." : {
+      "comment" : "Medium home widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habits due today with a completion summary."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habitudes prévues aujourd'hui avec un résumé de progression."
+          }
+        }
+      }
+    },
+    "No habits due today" : {
+      "comment" : "Inline lock widget empty state.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No habits due today"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune habitude prévue aujourd'hui"
+          }
+        }
+      }
+    },
+    "No habits yet" : {
+      "comment" : "Empty-state shown on the large weekly-grid widget when no habits exist.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No habits yet"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune habitude pour l'instant"
+          }
+        }
+      }
+    },
+    "not done" : {
+      "comment" : "Widget accessibility: binary habit not completed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "not done"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "non fait"
+          }
+        }
+      }
+    },
+    "One-line summary of today's habits." : {
+      "comment" : "Inline lock widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-line summary of today's habits."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résumé en une ligne des habitudes du jour."
+          }
+        }
+      }
+    },
+    "Pick a habit" : {
+      "comment" : "Accessibility label for an unpicked circular lock widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pick a habit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choisir une habitude"
+          }
+        }
+      }
+    },
+    "Quick tap-to-complete for the habits due today." : {
+      "comment" : "Small home widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quick tap-to-complete for the habits due today."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Valide rapidement les habitudes du jour d'un tap."
+          }
+        }
+      }
+    },
+    "Score %lld percent" : {
+      "comment" : "VoiceOver label for a large-widget habit row with no active streak. Arg: EMA score percent (0-100).",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Score %lld percent"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Score %lld pour cent"
+          }
+        }
+      }
+    },
+    "Show one habit on the lock screen." : {
+      "comment" : "Rectangular lock widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show one habit on the lock screen."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Affiche une habitude sur l'écran verrouillé."
+          }
+        }
+      }
+    },
+    "Streak %lld, score %lld percent" : {
+      "comment" : "VoiceOver label for a large-widget habit row. First arg: streak length in days. Second arg: EMA score percent (0-100).",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streak %1$lld, score %2$lld percent"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Série %1$lld, score %2$lld pour cent"
+          }
+        }
+      }
+    },
+    "Tap to pick a habit" : {
+      "comment" : "Prompt shown on an unpicked rectangular lock widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to pick a habit"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touche pour choisir une habitude"
+          }
+        }
+      }
+    },
+    "This week" : {
+      "comment" : "Large home widget header above the weekly grid.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This week"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette semaine"
+          }
+        }
+      }
+    },
+    "This Week" : {
+      "comment" : "Large home widget display name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This Week"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cette semaine"
+          }
+        }
+      }
+    },
+    "Today" : {
+      "comment" : "Used as both the small widget display name and the header on the medium widget.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd'hui"
+          }
+        }
+      }
+    },
+    "Today · Progress" : {
+      "comment" : "Medium home widget display name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today · Progress"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aujourd'hui · Progression"
+          }
+        }
+      }
+    },
+    "Today Summary" : {
+      "comment" : "Inline lock widget display name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today Summary"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Résumé du jour"
+          }
+        }
+      }
+    },
+    "Today's progress for one habit as a ring." : {
+      "comment" : "Circular lock widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's progress for one habit as a ring."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression d'une habitude du jour en anneau."
+          }
+        }
+      }
+    },
+    "Your habit grid for the past seven days." : {
+      "comment" : "Large home widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your habit grid for the past seven days."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ta grille d'habitudes sur les sept derniers jours."
+          }
+        }
+      }
+    },
+    "Daily Progress" : {
+      "comment" : "Day-progress circular lock widget display name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily Progress"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Progression du jour"
+          }
+        }
+      }
+    },
+    "How many of today's habits are done, as a ring." : {
+      "comment" : "Day-progress circular lock widget description.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How many of today's habits are done, as a ring."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Combien d'habitudes du jour sont faites, en anneau."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
