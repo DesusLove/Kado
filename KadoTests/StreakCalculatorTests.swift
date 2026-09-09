@@ -1,0 +1,358 @@
+import Testing
+import Foundation
+@testable import Kado
+import KadoCore
+
+@Suite("StreakCalculator")
+@MainActor
+struct StreakCalculatorTests {
+    private let calendar = TestCalendar.utc
+    private var asOf: Date { TestCalendar.day(0) }
+
+    private func habit(
+        frequency: Frequency = .daily,
+        type: HabitType = .binary,
+        createdAtOffset: Int = -60,
+        archivedAtOffset: Int? = nil
+    ) -> Habit {
+        Habit(
+            id: UUID(),
+            name: "Test",
+            frequency: frequency,
+            type: type,
+            createdAt: TestCalendar.day(createdAtOffset),
+            archivedAt: archivedAtOffset.map { TestCalendar.day($0) }
+        )
+    }
+
+    private func completion(for habit: Habit, dayOffset: Int) -> Completion {
+        Completion(
+            id: UUID(),
+            habitID: habit.id,
+            date: TestCalendar.day(dayOffset)
+        )
+    }
+
+    private func calculator() -> DefaultStreakCalculator {
+        DefaultStreakCalculator(calendar: calendar)
+    }
+
+    // MARK: - Empty / trivial
+
+    @Test("No completions yields current 0 and best 0")
+    func emptyHistory() {
+        let h = habit()
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: [], asOf: asOf) == 0)
+        #expect(calc.best(for: h, completions: [], asOf: asOf) == 0)
+    }
+
+    @Test("Habit created today with no completion yields current 0 (grace not yet counted)")
+    func createdTodayNoCompletion() {
+        let h = habit(createdAtOffset: 0)
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: [], asOf: asOf) == 0)
+        #expect(calc.best(for: h, completions: [], asOf: asOf) == 0)
+    }
+
+    @Test("Habit created today and completed today yields current 1 and best 1")
+    func createdAndCompletedToday() {
+        let h = habit(createdAtOffset: 0)
+        let completions = [completion(for: h, dayOffset: 0)]
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 1)
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 1)
+    }
+
+    // MARK: - Daily
+
+    @Test("10 consecutive daily completions yields current 10 and best 10")
+    func tenConsecutiveDays() {
+        let h = habit()
+        let completions = (0...9).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 10)
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 10)
+    }
+
+    @Test("Today uncomplete is a grace day — yesterday's streak carries")
+    func todayGraceDay() {
+        let h = habit()
+        // 5 days completed, days -1 through -5, today (0) not yet
+        let completions = (1...5).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 5)
+    }
+
+    @Test("Yesterday uncomplete breaks the current streak")
+    func yesterdayBreaks() {
+        let h = habit()
+        // Completed today, nothing day-1, then 3 completions days -2..-4
+        let completions = [
+            completion(for: h, dayOffset: 0),
+            completion(for: h, dayOffset: -2),
+            completion(for: h, dayOffset: -3),
+            completion(for: h, dayOffset: -4),
+        ]
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 1)
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 3)
+    }
+
+    // MARK: - .specificDays
+
+    @Test(".specificDays skips non-matching weekdays without breaking")
+    func specificDaysSkipsNonDue() {
+        // Reference day 2026-04-13 is Monday. Mon/Wed/Fri schedule.
+        // Due days in the past 2 weeks (from today=Mon Apr 13):
+        //   Apr 13 (Mon, today), Apr 10 (Fri), Apr 8 (Wed),
+        //   Apr 6 (Mon), Apr 3 (Fri), Apr 1 (Wed)
+        let h = habit(frequency: .specificDays([.monday, .wednesday, .friday]))
+        let dueOffsets = [0, -3, -5, -7, -10, -12]
+        let completions = dueOffsets.map { completion(for: h, dayOffset: $0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 6)
+    }
+
+    @Test(".specificDays breaks on a missed due day")
+    func specificDaysBreaks() {
+        let h = habit(frequency: .specificDays([.monday, .wednesday, .friday]))
+        // Completed today (Mon 13), Fri (10), miss Wed (8), Mon (6), Fri (3)
+        let completions = [0, -3, -7, -10].map { completion(for: h, dayOffset: $0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 2)
+    }
+
+    // MARK: - .everyNDays
+
+    @Test(".everyNDays streak breaks on a missed due day")
+    func everyNDaysBreaks() {
+        // createdAt day -15. N=3. Due days: -15, -12, -9, -6, -3, 0 (today).
+        let h = habit(frequency: .everyNDays(3), createdAtOffset: -15)
+        // Complete today, -3, miss -6, complete -9, -12, -15
+        let completions = [0, -3, -9, -12, -15].map { completion(for: h, dayOffset: $0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 2)
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 3)
+    }
+
+    @Test(".everyNDays counts an early completion instead of breaking on it")
+    func everyNDaysEarlyCompletionKeepsStreak() {
+        // N=2 from day -6. Done -6, then -5 a day early, then -3 and
+        // -1. Each completion restarts the cycle, so the due days are
+        // -6, -3, -1 — all met — and -5 counts as a day it was done.
+        // Under a fixed createdAt grid the due days would be -6, -4,
+        // -2 and the user would read as having missed two of them.
+        let h = habit(frequency: .everyNDays(2), createdAtOffset: -6)
+        let completions = [-6, -5, -3, -1].map { completion(for: h, dayOffset: $0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 4)
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 4)
+    }
+
+    @Test(".everyNDays done every single day counts every day")
+    func everyNDaysDailyOverDeliveryCountsEveryDay() {
+        // Working ahead re-anchors the cycle, so an every-2-days habit
+        // done daily is never due after its first day. Counting due
+        // days alone would report a streak of 1 for flawless
+        // adherence — strictly worse than doing half the work.
+        let h = habit(frequency: .everyNDays(2), createdAtOffset: -29)
+        let completions = (-29...0).map { completion(for: h, dayOffset: $0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 30)
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 30)
+    }
+
+    @Test(".everyNDays doing more never scores a shorter streak than doing less")
+    func everyNDaysMoreWorkNeverShortensStreak() {
+        // The invariant the over-delivery case exists to protect:
+        // adding completions to a perfect on-cadence history must
+        // never shorten the streak.
+        let h = habit(frequency: .everyNDays(3), createdAtOffset: -30)
+        let onCadence = stride(from: -30, through: 0, by: 3).map {
+            completion(for: h, dayOffset: $0)
+        }
+        let calc = calculator()
+        let baseline = calc.current(for: h, completions: onCadence, asOf: asOf)
+
+        for extraDay in [-29, -25, -14, -2] {
+            let richer = onCadence + [completion(for: h, dayOffset: extraDay)]
+            #expect(
+                calc.current(for: h, completions: richer, asOf: asOf) >= baseline,
+                "adding day \(extraDay) shortened the streak"
+            )
+        }
+    }
+
+    // MARK: - .daysPerWeek
+
+    @Test(".daysPerWeek(3) counts qualifying weeks, current week is grace")
+    func daysPerWeekQualifiesByCount() {
+        // Reference 2026-04-13 is Monday. UTC calendar firstWeekday=1 (Sunday).
+        // Current week = Sun Apr 12 ... Sat Apr 18. Contains Sun -1, Mon 0.
+        // Previous week = Sun Apr 5 ... Sat Apr 11.
+        // Week before = Sun Mar 29 ... Sat Apr 4.
+        // Target: 3 per week. Qualify prev two weeks, current week has just today.
+        let h = habit(frequency: .daysPerWeek(3), createdAtOffset: -30)
+        let completions = [
+            // Current week: only today — grace, still counts as non-breaking.
+            completion(for: h, dayOffset: 0),
+            // Previous week (Apr 5-11): Tue, Thu, Sat — qualifies (3).
+            completion(for: h, dayOffset: -6), // Tue Apr 7
+            completion(for: h, dayOffset: -4), // Thu Apr 9
+            completion(for: h, dayOffset: -2), // Sat Apr 11
+            // Week before (Mar 29-Apr 4): Mon, Wed, Fri — qualifies (3).
+            completion(for: h, dayOffset: -13), // Tue Mar 31
+            completion(for: h, dayOffset: -11), // Thu Apr 2
+            completion(for: h, dayOffset: -9),  // Sat Apr 4
+        ]
+        let calc = calculator()
+        // Current week (grace) + 2 qualifying past weeks = 3.
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 3)
+    }
+
+    @Test(".daysPerWeek(3) resets on a non-qualifying past week")
+    func daysPerWeekResets() {
+        let h = habit(frequency: .daysPerWeek(3), createdAtOffset: -30)
+        let completions = [
+            // Current week grace: 1 completion today.
+            completion(for: h, dayOffset: 0),
+            // Previous week: only 2 completions — below target, breaks streak.
+            completion(for: h, dayOffset: -4),
+            completion(for: h, dayOffset: -2),
+            // Older week: 3 completions — would have been a qualifying week,
+            // but the streak reset by the time we reach it.
+            completion(for: h, dayOffset: -13),
+            completion(for: h, dayOffset: -11),
+            completion(for: h, dayOffset: -9),
+        ]
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 1)
+        // Best = 1: only one qualifying historical week. The end-week
+        // grace doesn't revive a broken run, just prevents reset.
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 1)
+    }
+
+    /// The week start is not only a layout choice: a `.daysPerWeek`
+    /// streak is counted in whole calendar weeks, so moving where the
+    /// week begins moves which completions fall inside the same one.
+    /// A Saturday and the Sunday after it are one week's work under a
+    /// Monday-first calendar and two separate half-weeks under a
+    /// Sunday-first one — which is why `KadoApp` hands the user's
+    /// chosen calendar to this calculator and not just to the views.
+    @Test(".daysPerWeek streaks follow the calendar's first weekday")
+    func daysPerWeekFollowsFirstWeekday() {
+        let h = habit(frequency: .daysPerWeek(2), createdAtOffset: -30)
+        let completions = [
+            completion(for: h, dayOffset: -2), // Sat Apr 11
+            completion(for: h, dayOffset: -1), // Sun Apr 12
+        ]
+
+        let sundayFirst = DefaultStreakCalculator(calendar: TestCalendar.utc(firstWeekday: 1))
+        let mondayFirst = DefaultStreakCalculator(calendar: TestCalendar.utc(firstWeekday: 2))
+
+        // Sunday-first: the two completions straddle Apr 11/12, so the
+        // week before the current one holds just one and breaks the run.
+        #expect(sundayFirst.current(for: h, completions: completions, asOf: asOf) == 1)
+        // Monday-first: both fall inside Apr 6-12, which qualifies.
+        #expect(mondayFirst.current(for: h, completions: completions, asOf: asOf) == 2)
+    }
+
+    // MARK: - Negative habits
+
+    @Test("Negative habit streak counts days without completion")
+    func negativeHabitStreak() {
+        let h = habit(type: .negative)
+        // Days -5, -3 have completions (= failures). Days 0, -1, -2, -4, -6, -7 clean.
+        // Streak from today back: 0 clean, -1 clean, -2 clean, then -3 failure → break.
+        // Current streak = 3.
+        let completions = [
+            completion(for: h, dayOffset: -3),
+            completion(for: h, dayOffset: -5),
+        ]
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 3)
+    }
+
+    // MARK: - Invariants
+
+    @Test("Best is always greater than or equal to current")
+    func bestGreaterThanOrEqualCurrent() {
+        let h = habit()
+        // Past best: 7 days. Now: 2 day current streak after 4-day gap.
+        let completions = (0..<2).map { completion(for: h, dayOffset: -$0) }
+            + (7..<14).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        let cur = calc.current(for: h, completions: completions, asOf: asOf)
+        let best = calc.best(for: h, completions: completions, asOf: asOf)
+        #expect(best >= cur)
+        #expect(best == 7)
+        #expect(cur == 2)
+    }
+
+    // MARK: - Archived
+
+    @Test("Archived habit streak is computed as of archivedAt, not asOf")
+    func archivedComputedAsOfArchiveDate() {
+        // Habit archived 5 days ago. At that point streak was 10. Since then: nothing.
+        let h = habit(archivedAtOffset: -5)
+        let completions = (5..<15).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        // Grace day applies to archivedAt (day -5), not today.
+        // Days -5, -6, ..., -14 all completed → streak 10.
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 10)
+    }
+
+    // MARK: - Zero-value (note-only) records
+
+    @Test("Zero-value completion does not count toward streak")
+    func zeroValueDoesNotCountAsCompleted() {
+        let h = habit(createdAtOffset: -5)
+        let completions = [
+            completion(for: h, dayOffset: -1),
+            Completion(habitID: h.id, date: TestCalendar.day(-2), value: 0),
+            completion(for: h, dayOffset: -3),
+        ]
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 1)
+    }
+
+    @Test("Zero-value completion does not count toward best streak")
+    func zeroValueDoesNotCountAsBest() {
+        let h = habit(createdAtOffset: -10)
+        let completions = (-5 ... -1).map { offset -> Completion in
+            if offset == -3 {
+                return Completion(habitID: h.id, date: TestCalendar.day(offset), value: 0)
+            }
+            return completion(for: h, dayOffset: offset)
+        }
+        let calc = calculator()
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 2)
+    }
+
+    // MARK: - Backdate
+
+    @Test("Backdated completions extend current streak past createdAt")
+    func backdatedExtendsCurrent() {
+        let h = habit(createdAtOffset: -3)
+        let completions = (0...5).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 6)
+    }
+
+    @Test("Backdated completions count in best streak")
+    func backdatedCountsInBest() {
+        let h = habit(createdAtOffset: -3)
+        let completions = (3...7).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        #expect(calc.best(for: h, completions: completions, asOf: asOf) == 5)
+    }
+
+    @Test("First completion after createdAt: early days don't break streak")
+    func firstCompletionAfterCreation() {
+        let h = habit(createdAtOffset: -10)
+        let completions = (0...3).map { completion(for: h, dayOffset: -$0) }
+        let calc = calculator()
+        #expect(calc.current(for: h, completions: completions, asOf: asOf) == 4)
+    }
+}
