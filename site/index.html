@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kadō — A privacy-first habit tracker for iPhone and iPad</title>
+  <meta name="description" content="Kadō is a privacy-first habit tracker for iPhone and iPad. Non-binary habit score, offline-first, open source. No account, no subscription, no telemetry.">
+  <meta name="theme-color" content="#FBF8F2" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121513" media="(prefers-color-scheme: dark)">
+  <link rel="icon" type="image/svg+xml" href="/assets/branding/kado-app-icon.svg">
+  <link rel="alternate" hreflang="en" href="https://getkado.app/">
+  <link rel="alternate" hreflang="fr" href="https://getkado.app/fr/">
+  <link rel="alternate" hreflang="x-default" href="https://getkado.app/">
+  <link rel="canonical" href="https://getkado.app/">
+  <link rel="stylesheet" href="/styles.css">
+  <meta property="og:title" content="Kadō — A privacy-first habit tracker">
+  <meta property="og:description" content="Non-binary habit score. Offline-first. Open source. No account, no subscription, no telemetry.">
+  <meta property="og:image" content="https://getkado.app/assets/screenshots/en/01-today.png">
+  <meta property="og:url" content="https://getkado.app/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <!-- Privacy-friendly analytics by Plausible -->
+  <script async src="https://plausible.io/js/pa-moBSRloSqeIUwwpx4WSpw.js"></script>
+  <script>
+    window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+    plausible.init()
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav">
+      <a href="/" class="brand" aria-label="Kadō home">
+        <svg class="brand-mark" viewBox="0 0 120 120" fill="none" aria-hidden="true" focusable="false">
+          <path d="M 92 30 C 102 44, 102 68, 90 82 C 78 96, 56 100, 38 92 C 20 84, 12 64, 18 46 C 24 28, 44 18, 62 22 C 74 24, 82 28, 88 34" stroke="currentColor" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.95"/>
+          <circle cx="92" cy="30" r="5" fill="currentColor" opacity="0.95"/>
+        </svg>
+        <span class="brand-name">Kadō</span>
+        <span class="brand-tag" aria-hidden="true">稼働 · in operation</span>
+      </a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://github.com/scastiel/kado" target="_blank" rel="noopener">GitHub</a>
+        <a href="/fr/" class="lang-switch" hreflang="fr">FR</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <img src="/assets/branding/kado-app-icon.svg" alt="" class="app-icon" width="96" height="96">
+      <h1>Habits that don't punish you for being human.</h1>
+      <p class="lede">
+        A privacy-first habit tracker for iPhone and iPad. A non-binary habit
+        score instead of a fragile streak. Offline-first. Open source. No
+        account, no subscription, no telemetry.
+      </p>
+      <div class="cta">
+        <a class="app-store-badge" href="https://apps.apple.com/app/id6762570244" target="_blank" rel="noopener" aria-label="Download Kadō on the App Store">
+          <picture>
+            <source srcset="/assets/branding/app-store-en-white.svg" media="(prefers-color-scheme: dark)">
+            <img src="/assets/branding/app-store-en-black.svg" alt="Download on the App Store" height="48">
+          </picture>
+        </a>
+        <a class="btn btn-secondary" href="https://github.com/scastiel/kado" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5A11.5 11.5 0 0 0 .5 12a11.5 11.5 0 0 0 7.86 10.91c.58.1.79-.25.79-.55v-1.94c-3.2.69-3.87-1.54-3.87-1.54-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.2 1.77 1.2 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.27.73-1.56-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.3-.52-1.47.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 2.9-.39c.98 0 1.97.13 2.9.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.77 1.05.77 2.12v3.14c0 .3.21.66.8.55A11.5 11.5 0 0 0 23.5 12 11.5 11.5 0 0 0 12 .5z"/></svg>
+          Source on GitHub
+        </a>
+      </div>
+      <p class="hero-note">
+        Free · open source · iPhone and iPad on iOS 18 or later
+      </p>
+    </section>
+
+    <section id="screenshots" class="screenshots" aria-label="Screenshots">
+      <div class="screenshot-rail">
+        <figure><img src="/assets/screenshots/en/01-today.png" alt="Today view with habits due today" loading="lazy" decoding="async"></figure>
+        <figure><img src="/assets/screenshots/en/02-habit-detail.png" alt="Habit detail with monthly calendar and habit score popover" loading="lazy" decoding="async"></figure>
+        <figure><img src="/assets/screenshots/en/04-overview.png" alt="Multi-habit overview matrix" loading="lazy" decoding="async"></figure>
+        <figure><img src="/assets/screenshots/en/05-new-habit.png" alt="New habit creation form" loading="lazy" decoding="async"></figure>
+        <figure><img src="/assets/screenshots/en/07-today-dark.png" alt="Today view in dark mode" loading="lazy" decoding="async"></figure>
+      </div>
+    </section>
+
+    <section id="features" class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-kicker">Features</div>
+          <h2>Everything you need. Nothing you don't.</h2>
+          <p>Kadō's ambition is narrow: help you build long-term habits on iOS, with Apple-native surfaces and no hidden costs.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article>
+            <h3>A score, not a streak</h3>
+            <p>Kadō's habit score is an exponential moving average of your completions, inspired by Loop Habit Tracker. One missed day nudges the number down — it doesn't wipe months of progress.</p>
+          </article>
+          <article>
+            <h3>Your data stays yours</h3>
+            <p>No account. No analytics. No third-party SDKs. Storage is local; sync is optional through your own iCloud, in your private CloudKit container.</p>
+          </article>
+          <article>
+            <h3>Native to Apple</h3>
+            <p>SwiftUI, SwiftData, CloudKit, WidgetKit, App Intents. Home-screen and lock-screen widgets. Siri and Shortcuts: complete a habit, log a value, or ask for a streak, hands-free. Designed to feel like a first-party iOS app, not a cross-platform port.</p>
+          </article>
+          <article>
+            <h3>Flexible schedules</h3>
+            <p>Daily, N days per week, specific weekdays, or every N days — and the "every N days" cycle re-anchors each time you actually do it, so finishing early never costs you a day. Binary, counter, or timer habit types.</p>
+          </article>
+          <article>
+            <h3>Overview at a glance</h3>
+            <p>A habits × days matrix with score-shaded cells — the Loop / Way of Life pattern with Kadō's score DNA. Scroll back through history, tap any cell to open its day. Days you did something off-schedule show up too, instead of hiding as rest days.</p>
+          </article>
+          <article>
+            <h3>Reminders without noise</h3>
+            <p>Per-habit local notifications with recurring schedules and check / skip quick actions. Scheduled on-device; nothing routes through a server.</p>
+          </article>
+          <article>
+            <h3>Import, export, leave</h3>
+            <p>Lossless export and import in both JSON and CSV, round-trip tested. Open a CSV backup in Numbers or Excel, edit it, bring it back in — notes and all. Anti-lock-in from day one.</p>
+          </article>
+          <article>
+            <h3>History you can fix</h3>
+            <p>Forgot to log yesterday? Tap any day in the calendar and set it right — including days before the habit existed. Add a short note to any completion, and page back through the months.</p>
+          </article>
+          <article>
+            <h3>Shaped around your day</h3>
+            <p>Log after midnight? Push the day rollover as late as 6 AM and one tap still lands on the day you mean. Drag your habits into the order you actually do them — it syncs across your devices.</p>
+          </article>
+          <article>
+            <h3>Accessible by default</h3>
+            <p>Full Dynamic Type up to XXXL, VoiceOver labels on every surface, Dark Mode, and semantic colors that adapt to Increase Contrast.</p>
+          </article>
+          <article>
+            <h3>English and native French</h3>
+            <p>Translated by a French speaker, not a machine. <code>tu</code>, <code>série</code>, <code>habitude</code> — it reads right, not translated.</p>
+          </article>
+          <article>
+            <h3>Free, and staying that way</h3>
+            <p>No subscription, no ads, no paywalled features, no upsell. There is a Tip Jar in Settings if you want to support the work — it unlocks nothing, because there is nothing locked.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="block">
+      <div class="container">
+        <div class="section-head">
+          <div class="section-kicker">FAQ</div>
+          <h2>Frequently asked</h2>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>What's the difference between a habit score and a streak?</summary>
+            <div class="faq-answer">
+              <p>A streak resets to zero the moment you miss a day, which can make the whole tracker feel punishing. Kadō's habit score is an exponential moving average of your recent completions: a missed day gently nudges the number down, a successful day nudges it up, and weeks of consistency outweigh a single bad afternoon. Streaks are still shown — they're just not the only signal.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>How much does Kadō cost?</summary>
+            <div class="faq-answer">
+              <p>The app is free and open source under the MIT license. No subscription, no ads, no paywalled features. There's an optional Tip Jar in Settings → Support Kadō if you'd like to fund the work; it unlocks nothing, and the whole app stays free either way.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Does Kadō collect any data?</summary>
+            <div class="faq-answer">
+              <p>No. There is no analytics, no telemetry, no crash reporter, and no third-party SDK. If you enable iCloud sync, your data goes through Apple's CloudKit private database — it lives in your own iCloud, and the developer cannot see it. Full policy: <a href="https://github.com/scastiel/kado/blob/main/PRIVACY.md">PRIVACY.md</a>.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Do I need an account to use it?</summary>
+            <div class="faq-answer">
+              <p>No. Kadō works fully offline with zero sign-up. iCloud sync is optional and piggybacks on the Apple ID you already have on your device.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Can I sync between my iPhone and iPad?</summary>
+            <div class="faq-answer">
+              <p>Yes — through iCloud, if you opt in. Sync uses Apple's CloudKit private database, so your data never touches a third-party server. It's been tested across iPhone and iPad, and it's off by default.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Is there an Apple Watch app?</summary>
+            <div class="faq-answer">
+              <p>No, and it isn't planned. A watchOS app and HealthKit auto-completion were both on the roadmap, and in the months since launch nobody has asked for either — so they've been dropped rather than left dangling as vapourware. If that changes, <a href="https://github.com/scastiel/kado/issues">open an issue</a>; real demand would bring them back. Siri and Shortcuts already cover hands-free logging on iPhone and iPad. See the <a href="https://github.com/scastiel/kado/blob/main/docs/ROADMAP.md">roadmap</a>.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Can I import my habits from another tracker?</summary>
+            <div class="faq-answer">
+              <p>JSON and CSV import/export are both shipped and round-trip tested — export, edit in a spreadsheet if you like, import back with nothing lost. Direct import from Loop Habit Tracker and Streaks is still on the roadmap. You should never feel stuck in an app.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What devices and iOS versions are supported?</summary>
+            <div class="faq-answer">
+              <p>iPhone and iPad on iOS 18 or later — one universal app. Live Activities with Dynamic Island are planned; a Mac app is a maybe; watchOS isn't planned.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>Is the source really open?</summary>
+            <div class="faq-answer">
+              <p>Yes. The full source is MIT-licensed at <a href="https://github.com/scastiel/kado">github.com/scastiel/kado</a>. Issues, bug reports, and pull requests are welcome. Claude Code is used as a pair programmer — the <a href="https://github.com/scastiel/kado/blob/main/CLAUDE.md">CLAUDE.md</a> file is the project's working agreement and applies equally to human contributors.</p>
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary>What does "Kadō" mean?</summary>
+            <div class="faq-answer">
+              <p>Kadō (稼働) is Japanese for "in operation" or "running" — the state of a system that's quietly doing its job, day after day. A fitting name for a habit that keeps going.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="container">
+        <div class="next">
+          <div class="section-kicker">Latest release</div>
+          <h2>Version 1.7 is out</h2>
+          <p>CSV export and import, with a round-trip that keeps everything — notes included. And habits on an "every N days" schedule now count from the last day you actually did them, so finishing early no longer shows up as a miss. Next up: Live Activities for timer habits, then themes and Face ID. <a href="https://github.com/scastiel/kado/blob/main/docs/ROADMAP.md">See the roadmap →</a></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-grid">
+      <div>
+        <strong>Kadō</strong>
+        <p>A privacy-first habit tracker for iPhone and iPad. MIT-licensed, open source. Built in the open.</p>
+      </div>
+      <nav aria-label="Links">
+        <a href="https://github.com/scastiel/kado">Source code</a>
+        <a href="https://github.com/scastiel/kado/blob/main/PRIVACY.md">Privacy</a>
+        <a href="https://github.com/scastiel/kado/blob/main/LICENSE">License</a>
+        <a href="https://github.com/scastiel/kado/issues">Contact</a>
+      </nav>
+      <div class="lang-foot" aria-label="Language">
+        <a href="/" aria-current="page">English</a>
+        <a href="/fr/" hreflang="fr">Français</a>
+      </div>
+    </div>
+    <p class="foot-bottom">© 2026 Sébastien Castiel · Kadō is not affiliated with Apple Inc. App Store is a trademark of Apple Inc.</p>
+  </footer>
+</body>
+</html>
