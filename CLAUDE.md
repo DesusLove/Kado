@@ -1,0 +1,1115 @@
+# CLAUDE.md — Kadō
+
+Instructions for Claude Code working on Kadō, an open source privacy-first
+iOS habit tracker.
+
+This file defines **how** to code on this project. For **what** to build and
+**why**, see `docs/PRODUCT.md` and `docs/ROADMAP.md`.
+
+---
+
+## Project context
+
+Kadō is a native iOS habit tracker, open source (MIT), offline-first.
+Differentiators: non-binary habit score algorithm (inspired by Loop,
+reimplemented), HealthKit integration, native Apple Watch, frictionless
+export/import. No subscription, no telemetry, no required account.
+
+Target: iOS 18.0+, Xcode 16.0+, Swift 5.10+.
+
+---
+
+## Tech stack
+
+- **SwiftUI** with `@Observable` (iOS 17+) for state. **No Combine**
+  unless there's no alternative.
+- **SwiftData** for local persistence, with explicit migrations.
+- **CloudKit** via SwiftData for multi-device sync (user opt-in).
+- **ActivityKit** for Live Activities and Dynamic Island.
+- **WidgetKit** for home screen and lock screen widgets.
+- **App Intents** for Siri/Shortcuts (not legacy SiriKit).
+- **HealthKit** for read-only activity data (habit auto-completion).
+- **WatchKit** + SwiftUI for the native Apple Watch app.
+
+**Zero third-party dependencies for v0.x.** If RevenueCat becomes
+necessary later for a Pro tier, it will be the only exception. No
+Firebase, no analytics, no SaaS crash reporting.
+
+---
+
+## Architecture
+
+### General pattern
+Lightweight MVVM with strict separation:
+
+- **Models**: SwiftData types (`@Model`), pure domain types (structs).
+- **ViewModels**: `@Observable` classes, only for views that mutate
+  state outside of `@Query`-driven updates or share state across
+  multiple views. A view whose logic fits in `@Query` + small
+  computed properties + inline actions is a "simple view" — skip
+  the ViewModel. Extract business logic into a free struct with
+  injected `Calendar` (pattern: `CompletionToggler`) rather than
+  wrapping it in a ViewModel for structure's sake.
+  - **Picker over associated-value enums**: when a domain enum has
+    associated values (e.g. `Frequency.daysPerWeek(Int)`) and the
+    UI presents it as a `Picker`, the ViewModel holds a paired
+    case-only "kind" enum plus one stored property per variant's
+    params. Switching the kind stays non-destructive — the user's
+    partially-entered count/set/target isn't lost when they
+    explore options. Pattern: `NewHabitFormModel.FrequencyKind` +
+    `daysPerWeek`/`specificDays`/`everyNDays`, with one regression
+    test guarding the invariant.
+- **Views**: SwiftUI, ideally with no business logic.
+- **Services**: reusable business logic (HabitScoreCalculator,
+  ExportService, NotificationScheduler…). Protocol-defined, injected.
+- **Managers**: stateful wrappers around system APIs (HealthKitManager,
+  NotificationManager, BiometricManager).
+
+### Dependency Injection
+Via SwiftUI `Environment`. No third-party DI framework.
+
+```swift
+// Definition
+private struct HabitScoreCalculatorKey: EnvironmentKey {
+    static let defaultValue: any HabitScoreCalculating = DefaultHabitScoreCalculator()
+}
+
+extension EnvironmentValues {
+    var habitScoreCalculator: any HabitScoreCalculating {
+        get { self[HabitScoreCalculatorKey.self] }
+        set { self[HabitScoreCalculatorKey.self] = newValue }
+    }
+}
+
+// Usage
+struct HabitDetailView: View {
+    @Environment(\.habitScoreCalculator) private var calculator
+    // ...
+}
+```
+
+Each service is protocol-defined. Default implementations are used in
+production, mocks in tests.
+
+**`@Entry` macro for `@MainActor`-isolated reference types.** The
+`EnvironmentKey` pattern above works for value-type defaults
+(structs, simple references). It does **not** compose with a
+`@MainActor`-isolated `@Observable` class — the static
+`defaultValue` is evaluated nonisolated and Swift complains about
+calling a MainActor init from there. Use the `@Entry` macro
+instead, which generates the right isolation:
+
+```swift
+extension EnvironmentValues {
+    @Entry var cloudAccountStatus: any CloudAccountStatusObserving = MockCloudAccountStatusObserver()
+}
+```
+
+Pattern in use: `EnvironmentValues+Services.swift`'s
+`cloudAccountStatus` entry, backed by a Debug-only mock in
+`Preview Content/`.
+
+### View state
+Prefer enums for view state over multiple booleans:
+
+```swift
+// ✅ Good
+enum HabitListState {
+    case loading
+    case empty
+    case loaded([Habit])
+    case error(Error)
+}
+
+// ❌ Bad
+var isLoading: Bool
+var isEmpty: Bool
+var error: Error?
+var habits: [Habit]
+```
+
+### Concurrency
+Swift Concurrency (`async`/`await`, actors). No callback closures
+unless forced by a system API. Respect `MainActor` for anything
+UI-related.
+
+The project sets `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (Xcode's
+"approachable concurrency" default), which propagates MainActor
+isolation to every type by default. Domain value types that need
+cross-actor use (typically those with `Codable` or `Sendable`
+conformances consumed from off-MainActor tests or background
+encoders) must be marked `nonisolated` at the type declaration:
+
+```swift
+nonisolated enum Frequency: Hashable, Codable, Sendable { ... }
+nonisolated struct Habit: Hashable, Sendable { ... }
+```
+
+Without `nonisolated`, the synthesized conformances inherit MainActor
+isolation and emit "main actor-isolated conformance cannot be used in
+nonisolated context" warnings (errors under Swift 6 mode).
+
+The same rule extends to **service types whose default-argument
+sites are evaluated outside MainActor** — most commonly providers
+fed into a `@MainActor`-isolated init. `DefaultCKAccountStatusProvider`
+is the canonical example: it wraps `CKContainer.accountStatus()` (an
+async call that doesn't need MainActor) and serves as the default
+argument to `DefaultCloudAccountStatusObserver.init`. Both the
+class and any constants it references (e.g. `CloudContainerID`)
+need `nonisolated`, otherwise the init evaluation site warns.
+
+The same rule also extends to **static properties and static
+functions on a `@MainActor` type that are used as default-argument
+expressions on that type's init**. Even when the init itself is
+MainActor-isolated, Swift evaluates the default expression in the
+caller's context and warns ("converting `@MainActor () -> T` to
+`() -> T` loses global actor 'MainActor'"). Mark such defaults
+`nonisolated static` when they don't touch MainActor state — e.g.
+`DevModeController.defaultDevStoreURL` and
+`DevModeController.defaultProductionContainer()` are both
+`nonisolated static` because `URL` math and `ModelContainer.init`
+don't need MainActor.
+
+**`NSLock` is effectively banned in async code under Swift 6.**
+The non-scoped `lock()` / `unlock()` pair is marked "unavailable from
+asynchronous contexts" — a warning now, an error under Swift 6 mode.
+Your options:
+- **Cross-thread shared mutable state** → use an `actor`.
+- **Single-threaded test fakes or preview mocks** → drop the lock
+  entirely and mark `@unchecked Sendable` with a one-line comment
+  explaining that callers drive it sequentially. `FakeUserNotificationCenter`
+  in `KadoTests/Helpers/` is the canonical example.
+- **Scoped locking of a synchronous critical section inside an
+  async function** → `OSAllocatedUnfairLock.withLock { }` is fine
+  because the scoped closure doesn't span a suspension.
+
+### Dates and calendars
+Day arithmetic always goes through `Calendar` — never raw seconds.
+`addingTimeInterval(86400)` silently breaks across DST boundaries
+(a "day" is 23 or 25 hours twice a year). Use:
+
+- `calendar.startOfDay(for: date)` to anchor a `Date` to a day.
+- `calendar.date(byAdding: .day, value: n, to: date)` to advance days.
+- `calendar.dateComponents([.day], from: a, to: b).day` for day deltas.
+
+Any service that does date math accepts an injected `Calendar` (with
+default `.current`). Tests pin to `Calendar(identifier: .gregorian)`
+in UTC for determinism, and to `Europe/Paris` (or another DST-crossing
+zone) when DST behavior is under test. The `TestCalendar` helper in
+`KadoTests/Helpers/` is the canonical pattern.
+
+**Pick DST test zones by shape, not by habit.** `Europe/Paris`
+transitions at 02:00/03:00, so **midnight always exists there** — it
+structurally cannot catch a bug in code that assumes
+`startOfDay` returns 00:00. `America/Havana` (2026-03-08, 00:00 →
+01:00) is the necessary second fixture: its day begins at 01:00, and
+`calendar.date(byAdding: .day, value: -1, to: midnight)` preserves that
+01:00 rather than landing on a midnight. `TestCalendar.havana` exists
+for this. Other shapes worth reaching for when relevant:
+`Australia/Lord_Howe` (30-minute shift) and `Pacific/Chatham`
+(non-hour UTC offset).
+
+Prefer asserting the **invariant across a sweep of zones** over
+asserting examples in one — e.g. "`startOfDay` always returns a real
+midnight" walked over several zones × several transition windows.
+Example-based DST tests only cover the shapes you already thought of;
+the midnight-transition bug above shipped past a full suite of them.
+Canonical: `DayBoundaryTests.startOfDayIsAlwaysAMidnight`.
+
+---
+
+## Code conventions
+
+### Naming
+- Types: `UpperCamelCase`.
+- Properties, methods, variables: `lowerCamelCase`.
+- Protocols: describe a capability (`HabitScoreCalculating`,
+  `NotificationScheduling`) rather than a form (`HabitScoreCalculatorProtocol`).
+- Files: one primary type per file, filename = type name.
+
+### Switch-returning computed properties
+When a `switch` inside a computed property has **any arm** with
+multi-statement logic, put explicit `return` on **every** arm.
+Swift's implicit-return-from-switch only applies when every arm
+is a single expression; mixing `case .x: "literal"` with a
+multi-statement arm that uses `return` raises
+`"missing return in getter expected to return 'T'"` — a confusing
+error for an easy fix. When in doubt, be consistent.
+
+### File organization
+```
+Kado/                       # Main iOS app target (views, VMs, managers)
+├── App/                    # Entry point, app setup
+├── Views/                  # SwiftUI, organized by feature
+├── ViewModels/             # @Observable classes
+├── UIComponents/           # Reusable views
+├── Extensions/             # Swift extensions
+├── Resources/              # Assets, Localizable
+└── Preview Content/        # SwiftUI preview data
+
+Packages/
+└── KadoCore/               # Local Swift Package shared across targets
+    └── Sources/KadoCore/   # @Model + domain types, calculators,
+                            #   intents, widget snapshot types,
+                            #   anything extensions need to compile.
+                            # Don't duplicate @Model types into
+                            # targets — share via this package only
+                            # (see SwiftData section for why).
+
+KadoWidgets/                # Widget extension target (reads the
+                            #   App Group snapshot; no SwiftData)
+KadoWatch/                  # watchOS target
+KadoLiveActivity/           # Live Activities target
+KadoTests/                  # Unit tests (Swift Testing)
+KadoUITests/                # UI tests (XCTest)
+```
+
+Because `Packages/KadoCore/` is a local package, the standard
+`Packages/` line in `.gitignore` would silently drop it from the
+repo. Guard against that with an explicit
+`!Packages/KadoCore/` whitelist.
+
+### SwiftUI
+- Factor subviews out as soon as a `body` exceeds ~40 lines or when
+  display logic repeats. Also helps avoid "compiler unable to type-check
+  this expression in reasonable time" errors.
+- Use `ViewThatFits`, `ContainerRelativeShape`, `Layout` protocol
+  rather than manual size calculations when possible.
+- Systematic previews for every non-trivial view, with multiple states.
+  Include one `#Preview("Dark") { ... .preferredColorScheme(.dark) }`
+  per view file — pick a demanding state (accent-on-dark, mixed cell
+  states, filled form) rather than a neutral one.
+- **Prefer semantic colors; avoid hardcoded literals.** Use
+  `Color.primary` / `Color.secondary` for text, `Color.accentColor`
+  for tint, `Color(.secondarySystemBackground)` / `.tertiarySystemFill`
+  / `.secondarySystemFill` for surfaces. These auto-adapt to light /
+  dark / Increase Contrast. `Color.white` is acceptable only as text
+  on an accent-tinted fill (the standard tinted-button pattern); any
+  other use will not adapt. `Color.black` similarly needs justification.
+  Hex strings, `Color(red:green:blue:)`, and custom palette constants
+  require discussion.
+- **`@State` defaults that depend on `@Environment` must initialize
+  in `.onAppear`, not `init`.** `@State` is seeded before the env is
+  injected, so `Calendar.current` (or any fallback) will leak into
+  `init` instead of the overridden env value. Pattern:
+  ```swift
+  @State private var value: T? = nil
+  var body: some View {
+      ContentView(value: value ?? fallback)
+          .onAppear { if value == nil { value = computeDefault() } }
+  }
+  ```
+  Applied in `TimerLogSheet` so the env calendar drives today-
+  completion prefill, matching the save path.
+- **`.onChange(of: X, initial: true)` is stateless** — the callback
+  fires on launch and on change with the same signature, so it
+  can't distinguish "launched with X already true" from "user just
+  set X to true." If those two paths need different behavior, use
+  edge-triggered `.onChange(of: X) { old, new in ... }` and handle
+  the at-launch case via lazy init keyed on the presence/absence
+  of the underlying state. `DevModeController.devContainer()` uses
+  a "seed if empty" check for this — launches with dev mode already
+  on read the existing sqlite as-is; off→on transitions wipe the
+  file so the next lazy build reseeds.
+- **Swapping `.modelContainer(_:)` at runtime propagates to `@Query`
+  in place** — no `.id(...)` remount is required. `@Query` re-fetches
+  from the new container on the same view identity, so navigation
+  state, selected tab, and scroll position are preserved. Adding
+  `.id(flag)` as a defensive swap-trigger (as the Dev mode work
+  initially did) quietly resets all of that. Trust the swap; don't
+  rebuild the tree unless you've reproduced a real staleness bug.
+- **…but a swap invalidates every `@Model` object the old container
+  vended, so retained SwiftUI state must never hold one.** `@Query`
+  re-fetching is only half the story: `ForEach` retains the collection
+  it was handed and re-reads `Identifiable.id` during the *list diff*,
+  which runs after the swap. Reading any persisted property on an
+  invalidated object traps inside SwiftData — `EXC_BREAKPOINT`, not a
+  catchable exception. The same applies to a `NavigationPath` entry, a
+  `.sheet(item:)` payload, or any `@State` holding a record. Rule:
+  **views address habits by `UUID` and snapshot to value types for
+  display**; resolve the id back to a live record only inside the
+  mutation, against the current `@Query`. Canonical: `TodayRow` /
+  `HabitRoute` / `HabitDetailLoader` (issue #63). The fix is *not*
+  `.id(devModeFlag)` — that stops the crash by resetting exactly the
+  navigation and scroll state the note above exists to preserve.
+- **`ProgressView`'s indeterminate indicator takes its color from
+  `.tint`, not `.foregroundStyle` / `.foregroundColor`.** A spinner
+  placed on a tinted fill (e.g. a `Color.kadoAccent` capsule) needs an
+  explicit `.tint(...)` or it renders in the inherited accent and can
+  be invisible against a same-hued background. Setting `.foregroundStyle`
+  on the enclosing container colors the surrounding text but silently
+  does nothing to the circular indicator. First hit in `TipJarView`'s
+  purchase button (a `.tint(Color.kadoBackground)` spinner on the
+  accent price pill).
+- **When a control's `.disabled` guard depends on state set inside an
+  async action, set that state synchronously in the action before
+  spawning the `Task`.** `Button { Task { await work() } }` where
+  `work()`'s first line flips the disabling flag is racy: both the
+  button action and the `Task` body run on MainActor, but the flag is
+  only set after the `Task` is scheduled, so two taps in one runloop
+  tick both pass `.disabled(flag)` and fire twice. Write
+  `Button { guard !flag else { return }; flag = true; Task { await work() } }`.
+  Pattern: `TipJarView.tierButton` sets `purchasingTier` in the action,
+  not inside `tip(_:)`, to block a double-tap double-purchase.
+
+### Widget colours
+
+**A widget does not get to keep its palette.** Under the Home
+Screen's Tinted and Clear appearances WidgetKit renders in
+`.accented`: it drops your `containerBackground` for its own glass
+and re-tints every *opaque* pixel with one system colour, preserving
+only alpha. Two colours you chose for their contrast — ink on paper,
+a white label on a saturated fill — arrive as the same colour, and
+the text disappears. Kadō shipped exactly that: the "Today" and
+"This week" headlines were invisible on Clear, because a headline is
+the one piece of text with no fill of its own to sit on. Rules:
+
+- **Hierarchy comes from alpha, not hue.** Route *content* colours —
+  text, glyphs, and the fills they sit on — through `WidgetPalette`
+  (`Packages/KadoCore/.../Design/WidgetPalette.swift`), which returns
+  the paper / ink palette in `.fullColor` and alpha-separated
+  `.primary` in `.accented` / `.vibrant`. Two things stay outside it,
+  both deliberately: the `containerBackground`, which takes
+  `Color.kadoBackgroundSecondary` straight because the system drops it
+  wholesale in `.accented`; and a habit's own hue on a shape that
+  already carries alpha (the weekly matrix's scored cells), which
+  survives the tint untouched.
+- **A fill that text sits on must stay translucent.** An opaque fill
+  becomes a solid tint block, and the equally opaque label on it
+  vanishes. `WidgetPaletteTests` pins this in alpha, not in `Color`
+  identity — two distinct `Color`s prove nothing once hue is
+  discarded: every label clears its own fill by ≥0.5 alpha, no tinted
+  fill exceeds 0.75, and the not-due wash stays clear of the scored
+  ramp's 0.2 floor so "never due" is still tellable from "due and
+  missed".
+- **Dimming is cumulative — don't pay for it twice.** Content outside
+  the accent group is *already* rendered dimmer by the system, so a
+  heavy alpha on top of that buries it. Kadō's first cut dropped
+  secondary text to 0.6 and made the small widget's empty state
+  fainter than it had been before the fix. Rank secondary text with a
+  light touch (0.75), and mark a tile whose only content is an empty
+  state `.widgetAccentable()` so it isn't dimmed at all.
+- **Mark the content that must read first `.widgetAccentable()`** —
+  never where it encloses the background, or the fill joins the accent
+  group too and you are back to one flat colour. Nothing accentable
+  means everything lands in the dimmed default group. Note this is a
+  rule about the *modifier chain*, not just about which view you put
+  it on: `HabitWidgetCell` applies it to an `HStack` and stays correct
+  only because `.background` comes after it. Folding the background up
+  into that `HStack` reintroduces the bug with every test still green.
+- `test_sim` cannot see any of this: the flattening happens in
+  WidgetKit's render server, not in SwiftUI, so previews in
+  `.fullColor` and the unit suite both pass on a widget that is
+  unreadable on the Home Screen. Verify by hand — long-press the Home
+  Screen → **Edit** → **Customize** → **Clear** (and **Tinted**), in
+  both Light and Dark.
+
+### SwiftData
+- One `@Model` per persistent type, explicit relationships with
+  `@Relationship(deleteRule:inverse:)`.
+- Migrations: `VersionedSchema` + `SchemaMigrationPlan` are wired from
+  day one (`KadoSchemaV1` + `KadoMigrationPlan` with empty `stages`).
+  When schema evolves, copy the current version's models into a new
+  `KadoSchemaVN` namespace, append a `MigrationStage.lightweight(...)`
+  (or `.custom`), and append `KadoSchemaVN.self` to
+  `KadoMigrationPlan.schemas`.
+- **Schema-bump checklist**. Bumping the "current" version is not
+  local — these files all pin to a specific `KadoSchemaVN.self` and
+  must move in the same commit, or tests + production diverge:
+  1. `Packages/KadoCore/Sources/KadoCore/Models/Persistence/KadoSchemaVN.swift`
+     (new file) — copy the prior schema's `@Model` bodies, add your
+     new properties (all default-valued for CloudKit).
+  2. `KadoMigrationPlan.swift` — append the new version to `schemas`
+     and append a migration stage.
+  3. `HabitRecord` / `CompletionRecord` **typealias** — move from the
+     prior schema file to the bottom of the new one
+     (`public typealias HabitRecord = KadoSchemaVN.HabitRecord`).
+  4. Production factories: `SharedStore.productionContainer()` and
+     `DevModeController.makeDevContainer()` both build
+     `Schema(versionedSchema: KadoSchemaVN.self)` — bump both.
+  5. Tests: `KadoSchemaTests`, `CloudKitShapeTests`,
+     `WidgetSnapshotBuilderTests`, `DevModeControllerTests`,
+     `CompleteHabitIntentTests` — every `Schema(versionedSchema:)`
+     and every `FetchDescriptor<KadoSchemaV(N-1).HabitRecord>`
+     reference. Add a `KadoSchemaTests.vNVersion` + a V(N-1) → VN
+     migration regression test.
+  6. Domain `Habit` struct (`Packages/KadoCore/Sources/KadoCore/Models/Habit.swift`)
+     — add the new fields with defaults so existing call sites keep
+     compiling. The `@Model`'s `snapshot` must map them through.
+  7. **Deploy the schema to CloudKit Production before the next
+     TestFlight / App Store build ships.** Run a dev build once so
+     the new record fields materialize in the Development
+     environment, then *Deploy Schema Changes* in
+     [CloudKit Console](https://icloud.developer.apple.com/dashboard)
+     for `iCloud.dev.scastiel.kado`. Dev builds talk to Development,
+     App Store builds talk to Production — skipping this step makes
+     sync silently fail for every production user while working
+     perfectly in development (issue #52, two App Store reviews).
+     This is a manual console step; flag it in the PR's "Next steps"
+     whenever a schema version bumps.
+- Queries: prefer `@Query` in simple views, explicit descriptor + fetch
+  in services for complex logic.
+- CloudKit-shape from day one: every property has a default value or
+  is optional, **every relationship is optional on both sides**
+  (the to-one and the to-many — `[CompletionRecord]?` not
+  `[CompletionRecord]`), the to-many relationship has an explicit
+  inverse, no `@Attribute(.unique)`, no `Deny` delete rule, no
+  ordered relationships. The "both sides optional" rule is enforced
+  by CloudKit at `ModelContainer.init` runtime only — a non-optional
+  to-many compiles, mounts under a local-only configuration, and
+  crashes the moment `cloudKitDatabase: .private(...)` is set with
+  `NSCocoaErrorDomain 134060`. Pin the rules with a regression test
+  that walks `Schema.entities` and asserts `relationship.isOptional`
+  / `!attribute.isUnique` — see `KadoTests/CloudKitShapeTests.swift`
+  for the canonical pattern.
+- **Custom-enum storage workaround**: SwiftData on Xcode 26 / iOS 18
+  does not reliably support **any** custom enum type as a direct
+  `@Model` stored property — not just associated-value enums. Even
+  plain `String`-raw-value enums (e.g. `HabitColor`) crash at load
+  with `Could not cast Optional<Any> to <EnumType>` despite Codable
+  / Sendable / RawRepresentable being satisfied. Workarounds:
+  - For associated-value enums, store `private var fooData: Data`
+    and expose `var foo: Foo` with explicit JSON encode/decode.
+    Canonical: `HabitRecord.frequency`, `.type` in every schema
+    version.
+  - For `RawRepresentable` enums with primitive raw values, store
+    `private var fooRaw: String` (or the enum's raw type) and
+    expose `var foo: Foo { Foo(rawValue: fooRaw) ?? .default }`.
+    Canonical: `HabitRecord.color` in `KadoSchemaV2`.
+
+  Re-evaluate when Apple fixes the underlying bug.
+- **Share `@Model` types via the `KadoCore` package, never via
+  duplicated target membership.** SwiftData's schema uses the
+  generic type of a `FetchDescriptor<Model>` to map to its
+  persisted entity. If the same source file is compiled into
+  *both* the main app and the widget extension (via a
+  synchronized folder with dual target membership), SwiftData
+  sees `Kado.HabitRecord` and `KadoWidgetsExtension.HabitRecord`
+  as **distinct** types. A SQLite file stamped by one won't fetch
+  from the other — `context.fetch(descriptor)` traps with
+  `EXC_BREAKPOINT` on even a no-predicate descriptor. Cost us ~10
+  commits before we figured it out. All `@Model` classes live in
+  `Packages/KadoCore/`; main app + extensions link the one
+  compiled module.
+- **Do not open a CloudKit-mirrored SwiftData store from two
+  processes.** `cloudKitDatabase: .private(...)` claims exclusive
+  sync ownership. A second process with the same config traps
+  `NSCocoaErrorDomain 134422` ("another instance of this
+  persistent store actively syncing"). Opening the same file
+  with `.none` from the second process traps at the first fetch
+  because the on-disk metadata is CloudKit-stamped. `allowsSave: false`
+  doesn't help — read-only mode still registers a sync handler.
+  The pattern for extensions is **read-only JSON snapshots in an
+  App Group**: the main app's `WidgetSnapshotBuilder` writes
+  pre-computed data to `group.dev.scastiel.kado/.../widget-snapshot.json`
+  on every mutation; the widget's `SnapshotTimelineProvider`
+  decodes it. No SwiftData in the widget process.
+- **Avoid `#Predicate` in widget / extension code paths.** Even a
+  trivial `#Predicate { $0.archivedAt == nil }` traps with
+  `EXC_BREAKPOINT` on first fetch inside the widget extension on
+  this toolchain. Main-app code is fine; extensions should use a
+  `FetchDescriptor(sortBy: …)` with a Swift-side `.filter { }`
+  pass. Canonical: `HabitEntity.fetchSuggestions` and
+  `WidgetSnapshotBuilder.build`.
+- **AppIntents that mutate SwiftData reuse the app's live
+  container.** `CompleteHabitIntent` sets `openAppWhenRun = true`
+  and reads the container via `ActiveContainer.shared.get()` —
+  which `KadoApp` primes at scene build and on every dev-mode
+  swap. Opening `SharedStore.productionContainer()` fresh per
+  `perform()` invocation would instantiate a second
+  CloudKit-attached container in the same process and trap the
+  same way two processes would. Every new `AppIntent` that
+  mutates state should follow this pattern.
+- **`@Model` default-argument values must be fully qualified.**
+  `var color: HabitColor = .blue` fails with "A default value
+  requires a fully qualified domain named value (from macro
+  'Model')" plus a cascade of "type 'Any?' has no member 'blue'"
+  errors. Write `var color: HabitColor = HabitColor.blue` instead.
+  Only `@Model` class bodies need this — plain struct initializers
+  tolerate leading-dot shorthand as usual.
+
+---
+
+## Testing
+
+### Philosophy
+Tests where they add value, not everywhere. **Mandatory** for:
+- Any calculation logic (habit score first and foremost).
+- Any date, scheduling, or streak logic.
+- Any import/export parser.
+- Any service with conditional business logic.
+
+**Optional** for:
+- SwiftUI views (previews + manual testing suffice in MVP phase).
+- Trivial system API wrappers.
+
+### Framework
+**Swift Testing** (`@Test`, `#expect`) by default. XCTest only for UI
+tests.
+
+**Match numeric types on both sides of `#expect`.** Swift's permissive
+binding lets `#expect(value == 25 * 60)` compile when `value` is
+`Double?` and `25 * 60` is `Int`, but the runtime comparison returns
+`false` for the same logical value — the failure message reads
+`"1500.0 == 1500"` with no hint that the types differ. Always use
+an explicit `Double(...)` or `1500.0` literal when asserting against
+a `Double` value. Same rule applies to `#require`.
+
+**Don't hand-compute canonical serialized strings in tests.** When a
+test asserts against a hand-typed ISO8601 timestamp, JSON blob, or
+any encoder-produced output, paste the actual encoder output rather
+than computing it mentally. A "canonical shape" test that expects
+`"2023-11-15T13:20:00Z"` for epoch `1_700_100_000` is wrong (it's
+`2023-11-16T02:00:00Z`) and burns a `test_sim` cycle to discover.
+The right workflow: write the test with a placeholder expectation,
+run once, paste the printed actual, commit. The expected value is
+then ground truth, not a second source for the same calculation.
+
+### Workflow
+For any calculation function (score, streak, frequency), **write the
+test before the implementation**. Example:
+
+```swift
+@Test("Habit score with perfect 10-day streak equals ~100%")
+func perfectStreakScore() {
+    let calculator = DefaultHabitScoreCalculator()
+    let completions = (0..<10).map { Completion(date: .daysAgo($0), value: 1.0) }
+    let score = calculator.score(for: completions, frequency: .daily)
+    #expect(score > 0.95)
+}
+```
+
+### Style
+When a result can be expressed as "equal to a simpler analytical
+computation," prefer that comparison over a hard-coded numeric
+expectation. Example: instead of asserting a specific-days perfect
+score equals `0.7854`, assert it equals the score of N daily-perfect
+days. Reads better, survives small algorithm tweaks, and the failure
+message points at the intent rather than at a magic number.
+
+### Mocks
+Since services are protocol-based, create mocks inline in tests or in
+`KadoTests/Mocks/` if reused.
+
+---
+
+## Privacy and data
+
+### Non-negotiable principles
+- **No network calls** outside CloudKit (native Apple sync) and
+  HealthKit (local read). No telemetry, no analytics, no SaaS crash
+  reporter.
+- **Sensitive data**: none. No location, no contacts, no photos.
+  HealthKit only if the user enables it for auto-completion.
+- **Export/Import**: the user must be able to extract 100% of their
+  data as CSV and JSON, lossless. Test the round-trips.
+
+### Permissions
+Each requested permission must have:
+- A clear, honest `NSUsageDescription` in both EN and FR.
+- A functional fallback if refused.
+- UI to revoke and re-request.
+
+---
+
+## Security
+
+- Biometrics via `LocalAuthentication` (v0.3+), never mandatory.
+- CloudKit: only `privateCloudDatabase`. Never `publicCloudDatabase`.
+- No API keys, no secrets in the repo (shouldn't be needed given no
+  third-party services).
+
+---
+
+## Accessibility
+
+Non-negotiable from MVP:
+- `accessibilityLabel` on all tappable non-textual elements.
+- Full Dynamic Type support (no fixed frames for text).
+- VoiceOver tested on every view before merge.
+- Colors with AA minimum contrast ratio.
+- `reduceMotion` respected for animations.
+
+---
+
+## Localization
+
+- EN + native FR shipped (see
+  `docs/plans/2026-04/french-translations/`). FR conventions locked:
+  **`tu`** (not `vous`) throughout — matches Streaks / Loop FR and
+  the HIG personal-app default. **`série`** for "streak".
+  **`habitude`** (feminine) drives adjective / past-participle
+  agreement (`archivée`, `meilleure série`, `nouvelles`,
+  `modifiées`). Technical loanwords kept: `score`, `widget`,
+  `emoji`, `Kadō` (brand, macron preserved). For count-driven
+  frequency keys, the `one` variant in FR can drop `%lld` entirely
+  when the idiomatic phrase does — e.g. `Every %lld days` →
+  `one: "Tous les jours"`, not `"Tous les 1 jour"`. Never
+  machine-translate; always draft-review-commit with the native
+  speaker as final arbiter.
+- A regression test (`KadoTests/LocalizationCoverageTests.swift`)
+  walks the shipped catalog and fails if any user-facing key lacks
+  a non-empty FR translation. Run it before merging any PR that
+  adds a new EN key.
+- Use String Catalogs (`.xcstrings`), not legacy `Localizable.strings`.
+- Every user-facing string goes through localization — but **prefer
+  SwiftUI's `LocalizedStringKey`-typed initializers over explicit
+  `String(localized:)` wrapping**. `Text("foo")`, `Button("foo")`,
+  `Label("foo", systemImage: …)`, `.navigationTitle("foo")`,
+  `Tab("foo", systemImage: …)`, `ContentUnavailableView("foo", …)`,
+  `Section("foo")`, `Picker("foo", selection:)`, etc. all accept
+  `LocalizedStringKey` — the literal is already on the localized
+  path. Reach for `String(localized:)` only when the API is
+  `String`-typed (e.g. `.accessibilityLabel(_:)` with a dynamic
+  value, `TextField` placeholders, `confirmationDialog(_:)` titles),
+  or when a ternary `Text(cond ? "A" : "B")` would otherwise
+  collapse to the non-localizing `StringProtocol` overload (in which
+  case split the `Text` or wrap each arm).
+- **Interpolated strings must be wrapped as a whole**:
+  `String(localized: "\(name), \(state)")` works;
+  `"\(name), \(state)"` is a raw concat that never reaches the
+  catalog.
+- **For weekday labels, use `Weekday.localizedShort`,
+  `.localizedMedium`, or `.localizedFull`** — backed by
+  `Calendar.*StandaloneWeekdaySymbols`, so they auto-localize in
+  every language Apple ships. Never hand-roll catalog entries for
+  weekday abbreviations: Xcode collapses identical keys (e.g.
+  `"T"` with a Tuesday comment and `"T"` with a Thursday comment
+  merge into one entry), and the FR translator is then forced to
+  pick a single letter for both. The same principle applies to
+  month names (use `Calendar.monthSymbols` / `.shortMonthSymbols`
+  when the need arises).
+- **`Localizable.xcstrings` is source code, not a build artifact**.
+  Under `xcodebuild` / XcodeBuildMCP, the `.xcstrings` is NOT
+  auto-populated from source — only the Xcode IDE runs that sync.
+  Hand-author entries when a new key is introduced, commit the
+  catalog alongside the source change. Xcode will merge future
+  extractions with existing entries rather than overwrite.
+- Every catalog entry needs a `comment` describing its on-screen
+  context (imperative, context-first, under ~80 chars). For
+  count-driven interpolations, declare plural variants via
+  `variations.plural.{one,other}`.
+
+---
+
+## Tooling: XcodeBuildMCP
+
+This project uses **XcodeBuildMCP** (getsentry/XcodeBuildMCP, MIT) to
+give Claude Code structured access to Xcode, the simulator, and tests.
+It's the difference between "Claude writes code that you compile
+yourself" and "Claude writes, compiles, tests, fixes in an autonomous
+loop."
+
+### Installation (once per machine)
+
+Prerequisites: macOS 14.5+, Xcode 16.x+, Node.js 18+.
+
+Recommended option (Homebrew):
+
+```bash
+brew tap getsentry/xcodebuildmcp
+brew install xcodebuildmcp
+
+claude mcp add XcodeBuildMCP -s user -- xcodebuildmcp mcp
+```
+
+Alternative option (npx, no global install):
+
+```bash
+claude mcp add XcodeBuildMCP -s user -- npx -y xcodebuildmcp@latest mcp
+```
+
+Verify the server is connected:
+
+```bash
+claude mcp list
+# XcodeBuildMCP: ... - Connected
+```
+
+### Telemetry opt-out
+
+XcodeBuildMCP sends runtime errors to Sentry by default. **Inconsistent
+with our privacy-first philosophy** — disable it:
+
+```bash
+claude mcp remove XcodeBuildMCP -s user
+claude mcp add XcodeBuildMCP -s user \
+  -e XCODEBUILDMCP_SENTRY_DISABLED=true \
+  -- xcodebuildmcp mcp
+```
+
+(Or add the env var to the existing config depending on your MCP
+client.)
+
+### Optional skills
+
+XcodeBuildMCP ships optional agent skills that prime Claude on the
+correct tool usage. Install once:
+
+```bash
+xcodebuildmcp init
+```
+
+This adds instructions to guide Claude toward the right tools rather
+than `xcodebuild` via Bash.
+
+### Tools to prefer
+
+Claude should **prefer MCP tools over equivalent Bash commands**:
+
+| Need | MCP tool | Not this |
+|---|---|---|
+| Simulator build | `build_sim` | `xcodebuild` via Bash |
+| Device build | `build_device` | `xcodebuild` via Bash |
+| Run tests | `test_sim` | `xcodebuild test` via Bash |
+| List simulators | `list_sims` | `xcrun simctl list` |
+| Boot a simulator | `boot_sim` | `xcrun simctl boot` |
+| Screenshot | `screenshot` | — |
+| UI inspection | `snapshot_ui` | — |
+| LLDB debug | `debug_attach_sim`, `debug_stack` | `lldb` via Bash |
+| Project/scheme discovery | `discover_projs`, `list_schemes` | — |
+
+Tools return structured JSON (categorized errors, file paths, line
+numbers) instead of raw logs. This saves context and makes debugging
+deterministic.
+
+### Expected TDD workflow for any business logic feature
+
+1. Read the spec (`docs/habit-score.md`, `docs/ROADMAP.md`)
+2. Write the Swift Testing tests
+3. Call `test_sim` to confirm they fail (red)
+4. Implement the feature
+5. Call `test_sim` again (green)
+6. Call `build_sim` to verify the full app still compiles
+7. For UI features: call `screenshot` to visually verify
+8. Commit
+
+### Default simulator
+
+Boot and use **iPhone 16 Pro** (iOS 18.x) as default target. For iPad
+layout testing: iPad Air (M2). For accessibility testing: enable
+Dynamic Type XXXL and VoiceOver via `simctl` before `snapshot_ui`.
+
+On the current Xcode 26 toolchain, fresh installs ship only the
+iPhone 17 family — iPhone 17 Pro is the practical default and was
+used for the v0.1 CloudKit two-device verification.
+
+If the named sim isn't installed on the machine (`list_sims` doesn't
+show it), substituting a +1 generation (iPhone 17 Pro, iPad Air M4)
+is fine — the layout class and dark-mode/accessibility behavior are
+identical for audit purposes. Note the substitution in the plan /
+compound so the record is accurate; don't pretend the nominal sim
+ran.
+
+### When to open Xcode manually
+
+XcodeBuildMCP works headless (Xcode doesn't need to be open). Cases
+where you still open Xcode:
+- Visual verification of a subtle layout bug (MCP can't see "off by
+  10 pixels")
+- Provisioning profile / code signing debugging (not structured by MCP)
+- Interactive SwiftUI Previews exploration
+- Initial project configuration (capabilities, entitlements)
+
+### Known limitations to manage
+
+- No automatic visual debugging: a `screenshot` must be humanly
+  interpreted if the bug is visual-only.
+- No incremental build: every `build_sim` is a full build (+15-30s on
+  large projects, negligible on Kadō early on).
+- Code signing: errors remain opaque, ask the human to fix in Xcode
+  when needed.
+- **Tap / type / gesture primitives are not enabled in the default
+  XcodeBuildMCP install.** `build_run_sim` and `screenshot` work, but
+  you cannot tap a habit row to push into Detail, or fill a form
+  field in the New Habit sheet — only the launched screen is
+  reachable. Multi-screen sim audits need either `idb` installed
+  separately, Simulator.app hands-on, or an explicit XcodeBuildMCP
+  reconfigure that enables the UI-automation workflow. Until that's
+  done, plan audits around the single reachable surface + SwiftUI
+  previews for the rest, and flag the gap in the finding notes.
+  First hit in [kado#5](https://github.com/scastiel/kado/pull/5), hit
+  again in [kado#8](https://github.com/scastiel/kado/pull/8).
+- **Destination resolution flakiness**: `test_sim` and
+  `build_run_sim` occasionally fail with `Unable to find a
+  destination matching { platform:iOS Simulator, OS:latest, name:… }`
+  even though the simulator is booted and its SDK is installed —
+  the error text cites the missing iOS *device* SDK. xcodebuild
+  appears to walk all scheme destinations and abort when
+  device-side resolution fails, poisoning the simulator build.
+  Try fixes in this order:
+  1. `xcrun simctl shutdown all && xcrun simctl boot "<sim name>"`,
+     then rerun.
+  2. If that doesn't work, fall back to direct xcodebuild with a
+     **pinned OS version** (the MCP tool sends `OS:latest`, which
+     xcodebuild can't always match even when the SDK is present):
+     ```
+     xcodebuild -project Kado.xcodeproj -scheme Kado \
+       -destination "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4.1" \
+       test
+     ```
+     Find the real OS version via
+     `xcrun simctl list devices available | grep -A1 "iOS"`.
+  3. Cleaning DerivedData (`rm -rf ~/Library/Developer/Xcode/DerivedData/Kado-*`)
+     occasionally helps.
+  No source-level change is needed — the code is fine, the
+  runtime state is not.
+- **A first scheme edit can persist a shared scheme with an empty
+  `<TestAction>`, breaking `test_sim`.** This project relied on Xcode's
+  *autocreated* scheme (nothing under `xcshareddata/xcschemes/`). The
+  moment someone edits the scheme in Xcode — e.g. attaching a
+  `.storekit` StoreKit configuration to the Run action — Xcode
+  materializes a real shared `Kado.xcscheme`, and it can land with an
+  **empty `<TestAction>`**. `test_sim` / `xcodebuild test` then fails
+  with `Scheme Kado is not currently configured for the test action`
+  even though the tests compile. Fix: add a `<Testables>` entry to the
+  scheme's `<TestAction>` pointing at the `KadoTests` target (blueprint
+  id from `project.pbxproj`), then commit the shared scheme so the
+  config is reproducible. First hit wiring `Tips.storekit` into the
+  scheme (tip-jar feature).
+
+---
+
+## UI tests (XCUITest)
+
+`KadoUITests` exists for the one class of bug unit tests structurally
+cannot see: a crash *inside* a SwiftUI update pass, where there is no
+seam to assert on. `make e2e` runs it; `make test` keeps the unit
+suite at its usual couple of seconds. Each worktree drives a simulator
+of its own (`SIM_NAME ?= Kado $(notdir $(CURDIR))`) because parallel
+`.claude/worktrees/` runs would otherwise install over each other, and
+XCUITest's parallel clones are named after the device they came from,
+so even the clones collide.
+
+Everything the app exposes to the suite lives in
+`Kado/Support/UITestSupport.swift`, inside `#if DEBUG` — with a
+release stand-in beside it carrying only the members production code
+reads, so a view can ask `UITestSupport.suppressesNameAutoFocus`
+without a `#if` inside its body.
+
+`ScreenshotTests` sits in the same bundle but is **not a suite**: it
+photographs the app for the App Store listing and asserts nothing a
+suite would miss. `make e2e` skips it
+(`-skip-testing:KadoUITests/ScreenshotTests`); `make screenshots`
+runs it, on devices of its own with a pinned clock, appearance and
+language. Light and dark are separate test methods on purpose —
+nothing inside a test can change the simulator's appearance, and
+`simctl ui <udid> appearance` can, so the script sets it between the
+two passes.
+
+Four findings, each of which cost a cycle:
+
+- **Never build the UI suite with `CODE_SIGNING_ALLOWED=NO`.** Kadō's
+  app target carries the iCloud and App Group entitlements, and an
+  unsigned build has neither, so `CKContainer(identifier:)` traps on
+  the first line of `KadoApp.init()`. Every test then "fails" at launch
+  with `EXC_BREAKPOINT` for a reason unrelated to what it tested.
+  Simulator builds sign to run locally at no cost.
+- **A launch argument sets a `UserDefaults` value but also freezes
+  it.** `-kado.devMode 1` does start the app in dev mode — and then the
+  argument domain, which outranks every stored value, serves that `1`
+  straight back to `@AppStorage` after the user's toggle writes `false`.
+  The toggle springs on again and nothing swaps. Starting state that a
+  test intends to *change* must be written into the real suite from
+  inside the app (`UITestSupport.applyLaunchArguments()`), not passed
+  as an argument.
+- **SwiftUI's `Tab` gives no seam for an accessibility identifier.**
+  One on the tab's content stamps every element in the screen beneath
+  it; one on its label compiles, looks right, and never reaches the tab
+  bar button — dumped live, all three come through with their labels
+  and an empty identifier. It half-works by accident (the selected
+  tab's label matches something in the content), which is worse than
+  not working. Address tabs by position: `AccessibilityID.Tab`.
+- **`waitForExistence` cannot wait for a row below the fold.** An
+  unrealized `Form` row is not in the hierarchy at all, so the wait
+  watches for something that cannot appear until something scrolls.
+  Scroll first (`KadoUITestCase.scrollTo`). The Dev mode toggle, last
+  section in Settings, looked missing for a full 30s timeout this way.
+
+**Apply accessibility identifiers in the same commit as the view.**
+Retrofitting them across a grown app is what makes UI suites get
+abandoned. They go on **leaves, never containers** —
+`.accessibilityIdentifier` applies to every descendant, so an outer one
+silently erases every identifier set inside it. A row that has already
+collapsed its subtree with `.accessibilityElement(children: .combine)`
+is a leaf, and is the right place (`HabitRowView`). Identifiers also
+matter more here than in an English-only app: Kadō ships French, and a
+suite matching `app.staticTexts["Dev mode"]` passes on one simulator
+and fails on the other.
+
+---
+
+## The App Store listing
+
+The listing is generated and pushed from the command line — no
+screenshot is taken by hand and no copy is retyped into a web form.
+`docs/app-store/README.md` is the full account; the shape:
+
+```
+make screenshots     photograph the app, both languages, both sizes, framed
+make frames          re-wrap the existing captures — new headline, no recapture
+make listing-check   lengths and image sizes, without the network
+make listing         send the copy and the screenshots (needs ASC_ISSUER_ID)
+```
+
+- **The copy is files, not JSON.** `docs/app-store/metadata/<locale>/<field>.txt`,
+  one field per file: a 4000-character description with its own line
+  breaks does not survive being hand-edited inside a JSON string. An
+  **absent file is left alone**, so a field edited by hand in App
+  Store Connect is not clobbered by the next run.
+- **`docs/app-store-connect.md` is the prose half** — age rating,
+  review notes, TestFlight copy, checklists. Where it overlaps with
+  `metadata/`, the files are what ships. Change both.
+- **Framing is a second pass over the raw captures.** Restyling the
+  set is `make frames` and four seconds; re-photographing is a
+  simulator per language per device and half an hour. The raw tree
+  stays committed as the source of truth.
+- **`Scripts/appstore.py` has no dependencies.** The ES256 JWT App
+  Store Connect wants is signed with `openssl` and the DER signature
+  converted to JWS's raw R||S — the one place a package would
+  otherwise have crept into a project that has none.
+- **The English listing is `en-CA`, not `en-US`.** Writing the wrong
+  locale is not an error — App Store Connect adds a second English
+  localization beside the real one and says nothing. Likewise the live
+  iPhone screenshots sit under `APP_IPHONE_65` while these captures
+  belong to `APP_IPHONE_67`, so the first upload creates a set rather
+  than replacing one. `make listing-info` prints what the listing
+  actually holds and warns about anything `config.json` disagrees with;
+  run it before changing either.
+- **Every write has `--dry-run`**, which reads and compares exactly as
+  the real run does and sends nothing. Use it: the API has no undo,
+  and this is the copy customers read. It is what caught both of the
+  mismatches above, before anything was sent.
+- **Two API keys, on purpose.** `3NJ328MR4F` (App Manager) writes the
+  listing; `RLTPSN7JPS` (Admin) is the only one that can sign, because
+  creating a distribution certificate *or* a provisioning profile is a
+  cloud-signing operation and App Manager cannot do either. The failure
+  mode is nasty: `xcodebuild archive` succeeds anyway, silently falling
+  back to the Apple Development identity, and the refusal only surfaces
+  at `-exportArchive` as `Cloud signing permission error`. Check
+  `SigningIdentity` in the archive's `Info.plist` if a release looks
+  wrong.
+- **The marketing site is regenerated from the same captures.**
+  `docs/screenshots/iphone-67-appstore/` is resized out of the iPhone
+  set on the way out of `make screenshots`, so `getkado.app` and the
+  listing cannot drift apart.
+- **The widgets shot is assembled, not photographed.** A Home Screen
+  is the wrong picture (wallpaper, other apps' icons) and XCUITest
+  can't add a widget to one anyway. The widget views live in
+  `KadoCore` so the app can draw them; `-uiTestWidgetGallery` shows
+  every widget at true size on the screenshot seed, the test
+  photographs each tile by element into
+  `screenshots/<locale>/03-widgets/` (once, on the iPhone, at 3× — the
+  iPad's 2× tiles would only be upscaled), and
+  `frame-screenshots.swift` composes them per canvas. Moving a tile is
+  `make frames`; changing a widget is `screenshots.sh --passes widgets`.
+
+---
+
+## Git and commits
+
+### Branches
+- `main`: always deployable.
+- `feature/<short-name>` for development.
+- One PR per feature or logical fix, not per file.
+
+### Commit messages
+Lightweight conventional commits format:
+
+```
+feat(score): implement exponential moving average calculator
+fix(widget): correct date offset in weekly grid
+test(score): add edge cases for frequency-adjusted scoring
+docs: update ROADMAP with v0.2 scope
+refactor(habit-detail): extract calendar grid into own view
+```
+
+Scope optional, description in imperative present, no trailing period.
+
+### Pull requests
+
+Every PR has:
+
+- **A semantic-commit-style title** (`<type>(<scope>): <description>`)
+  — same convention as commit messages. The title becomes the
+  squash-merge commit on `main`, so it must stand alone.
+- **A short, bullet-heavy description in four sections**, in this
+  order:
+  - **Why?** — the problem the PR solves
+  - **What?** — product-oriented overview of the change
+  - **How?** — technical notes on the implementation
+  - **Next steps** — follow-ups, open questions, deferred work
+
+Favor bullets over prose. The description should be skimmable in
+30 seconds. Link to `docs/plans/<slug>/` artifacts instead of
+restating their content.
+
+---
+
+## Interaction with Claude Code
+
+### Operating mode
+- For any new feature, start by re-reading the relevant section of
+  `docs/ROADMAP.md` and `docs/PRODUCT.md`.
+- Propose a brief plan before writing code for any non-trivial feature
+  (more than 2 files modified).
+- For a feature with business logic: tests first, implementation
+  second.
+- Prefer small iterations over a large PR.
+- For non-trivial features, use the **conductor** skill
+  (`.claude/skills/conductor/`) to structure the work through
+  research → plan → build → compound stages. Load it when the user
+  signals a new feature is starting. Stages can be skipped — confirm
+  with the user before bypassing one.
+- When research depends on a load-bearing claim about toolchain
+  behavior ("this storage shape works", "this API supports X"),
+  verify with a 2-minute smoke test before committing the design.
+  Research helpers can be wrong about toolchain-specific specifics;
+  catching it up front is far cheaper than a mid-build pivot.
+
+### What Claude should NOT do without asking
+- Add a third-party dependency (Swift Package or otherwise).
+- Modify the SwiftData schema in a non-migrating way.
+- Change the MVVM+Services architecture defined above.
+- Introduce Combine where `@Observable` suffices.
+- Suggest or add telemetry, analytics, or crash reporting.
+- Introduce premium features / paywalls without product discussion.
+- Use `xcodebuild` via Bash when an XcodeBuildMCP tool exists (see
+  the Tooling section).
+
+### What Claude can do freely
+- Refactor while staying within the defined architecture.
+- Factor out SwiftUI views that grew too long.
+- Write and enrich tests.
+- Propose UX improvements in PRs.
+- Create rich SwiftUI previews.
+- Add doc comments (`///`) on public APIs.
+
+### Definition of "done"
+A task is done when:
+1. `build_sim` returns success with no new warnings.
+2. `test_sim` passes all existing tests, and new ones have been added
+   if business logic was involved.
+3. SwiftUI previews work for new views, **and** `screenshot` (or a
+   live human visual check) is captured after every visual change.
+   Design bugs — wrong tint, identical states for opposite values,
+   layout overflow, regressed truncation — compile fine and pass
+   `test_sim`. Only a literal pixel check catches them. Cheap
+   insurance, not optional.
+4. Accessibility is tested (Dynamic Type XXXL, VoiceOver on iPhone 16
+   Pro minimum).
+5. Behavior is verified on iPhone AND iPad simulator via `build_sim`
+   on both targets.
+6. The commit message follows the format above.
+
+---
+
+## Useful references
+
+- SwiftUI and `@Observable`: https://developer.apple.com/documentation/Observation
+- SwiftData migrations: https://developer.apple.com/documentation/swiftdata/schemamigrationplan
+- App Intents: https://developer.apple.com/documentation/appintents
+- HealthKit: https://developer.apple.com/documentation/healthkit
+- XcodeBuildMCP: https://github.com/getsentry/XcodeBuildMCP
+- XcodeBuildMCP tools reference: https://github.com/getsentry/XcodeBuildMCP/blob/main/docs/TOOLS.md
+- HIG habit tracking patterns: observe Streaks, (Not Boring) Habits.
